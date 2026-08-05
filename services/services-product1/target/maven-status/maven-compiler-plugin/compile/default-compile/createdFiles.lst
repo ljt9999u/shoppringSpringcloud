@@ -1,0 +1,4 @@
+org\example\Service\Impl\PriductImpl.class
+org\example\Service\ProductService.class
+org\example\Controller\ProductContoller.class
+org\example\ProductApplication.class

@@ -1,0 +1,270 @@
+CREATE TABLE `user` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) NOT NULL COMMENT '用户名',
+  `password` varchar(100) NOT NULL COMMENT '密码(MD5)',
+  `phone` varchar(20) NOT NULL COMMENT '手机号',
+  `email` varchar(100) COMMENT '邮箱',
+  `avatar` varchar(255) COMMENT '头像URL',
+  `nickname` varchar(50) COMMENT '昵称',
+  `gender` tinyint DEFAULT 0 COMMENT '性别 0未知 1男 2女',
+  `role_code` varchar(20) NOT NULL DEFAULT 'USER' COMMENT '角色码 USER用户 MERCHANT商家 ADMIN管理员',
+  `status` tinyint DEFAULT 1 COMMENT '状态 0禁用 1启用',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_phone` (`phone`),
+  UNIQUE KEY `uk_username` (`username`)
+) ENGINE=InnoDB COMMENT='用户表';
+
+
+CREATE TABLE `user_address` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL COMMENT '用户ID',
+  `consignee` varchar(50) NOT NULL COMMENT '收货人',
+  `phone` varchar(20) NOT NULL COMMENT '联系电话',
+  `province` varchar(50) NOT NULL,
+  `city` varchar(50) NOT NULL,
+  `district` varchar(50) NOT NULL,
+  `detail` varchar(255) NOT NULL COMMENT '详细地址',
+  `is_default` tinyint DEFAULT 0 COMMENT '是否默认 0否 1是',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB COMMENT='收货地址表';
+
+
+
+CREATE TABLE `merchant` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL COMMENT '关联用户ID',
+  `shop_name` varchar(100) NOT NULL COMMENT '店铺名称',
+  `shop_logo` varchar(255) COMMENT '店铺Logo',
+  `business_license` varchar(50) NOT NULL COMMENT '营业执照号',
+  `contact_phone` varchar(20) NOT NULL COMMENT '联系电话',
+  `status` tinyint DEFAULT 0 COMMENT '审核状态 0待审核 1已通过 2已拒绝',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_id` (`user_id`)
+) ENGINE=InnoDB COMMENT='商家表';
+
+
+CREATE TABLE `category` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `parent_id` bigint DEFAULT 0 COMMENT '父分类ID 0为根',
+  `name` varchar(50) NOT NULL COMMENT '分类名称',
+  `icon` varchar(255) COMMENT '分类图标',
+  `sort` int DEFAULT 0 COMMENT '排序',
+  `status` tinyint DEFAULT 1 COMMENT '状态 0禁用 1启用',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_parent_id` (`parent_id`)
+) ENGINE=InnoDB COMMENT='商品分类表';
+
+
+CREATE TABLE `brand` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL COMMENT '品牌名称',
+  `logo` varchar(255) COMMENT '品牌Logo',
+  `description` text COMMENT '品牌简介',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB COMMENT='品牌表';
+
+
+CREATE TABLE `product` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `merchant_id` bigint NOT NULL COMMENT '商家ID',
+  `category_id` bigint NOT NULL COMMENT '分类ID',
+  `brand_id` bigint COMMENT '品牌ID',
+  `name` varchar(200) NOT NULL COMMENT '商品名称',
+  `subtitle` varchar(255) COMMENT '副标题',
+  `main_image` varchar(255) COMMENT '主图URL',
+  `detail` text COMMENT '商品详情(富文本)',
+  `price` decimal(10,2) NOT NULL COMMENT '现价',
+  `original_price` decimal(10,2) COMMENT '原价',
+  `stock` int NOT NULL DEFAULT 0 COMMENT '库存',
+  `sales` int DEFAULT 0 COMMENT '销量',
+  `status` tinyint DEFAULT 0 COMMENT '状态 0下架 1上架 2待审核',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_merchant_id` (`merchant_id`),
+  KEY `idx_category_id` (`category_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB COMMENT='商品表';
+
+
+CREATE TABLE `product_image` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `product_id` bigint NOT NULL COMMENT '商品ID',
+  `image_url` varchar(255) NOT NULL,
+  `sort` int DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_product_id` (`product_id`)
+) ENGINE=InnoDB COMMENT='商品图片表';
+
+CREATE TABLE `product_spec` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `product_id` bigint NOT NULL,
+  `spec_name` varchar(50) NOT NULL COMMENT '规格名(如:颜色)',
+  `spec_value` varchar(100) NOT NULL COMMENT '规格值(如:红色)',
+  `stock` int DEFAULT 0,
+  `price` decimal(10,2) COMMENT '加价',
+  PRIMARY KEY (`id`),
+  KEY `idx_product_id` (`product_id`)
+) ENGINE=InnoDB COMMENT='商品规格表';
+
+
+
+CREATE TABLE `cart` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL,
+  `product_id` bigint NOT NULL,
+  `spec_id` bigint COMMENT '规格ID',
+  `quantity` int NOT NULL DEFAULT 1,
+  `checked` tinyint DEFAULT 1 COMMENT '是否勾选 0否 1是',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB COMMENT='购物车表';
+
+
+
+CREATE TABLE `orders` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `order_no` varchar(64) NOT NULL COMMENT '订单号',
+  `user_id` bigint NOT NULL,
+  `merchant_id` bigint NOT NULL COMMENT '商家ID(多商家拆单用)',
+  `total_amount` decimal(10,2) NOT NULL COMMENT '商品总金额',
+  `freight` decimal(10,2) DEFAULT 0 COMMENT '运费',
+  `pay_amount` decimal(10,2) NOT NULL COMMENT '实付金额',
+  `status` tinyint DEFAULT 0 COMMENT '0待付款 1待发货 2待收货 3已完成 4已取消 5已退款',
+  `address_id` bigint COMMENT '收货地址ID',
+  `remark` varchar(255) COMMENT '订单备注',
+  `pay_time` datetime COMMENT '支付时间',
+  `ship_time` datetime COMMENT '发货时间',
+  `receive_time` datetime COMMENT '收货时间',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_order_no` (`order_no`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_merchant_id` (`merchant_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB COMMENT='订单表';
+
+
+CREATE TABLE `order_detail` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `order_id` bigint NOT NULL,
+  `product_id` bigint NOT NULL,
+  `product_name` varchar(200) NOT NULL COMMENT '商品快照',
+  `product_image` varchar(255),
+  `spec_id` bigint,
+  `spec_name` varchar(100) COMMENT '规格快照',
+  `price` decimal(10,2) NOT NULL,
+  `quantity` int NOT NULL,
+  `subtotal` decimal(10,2) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_order_id` (`order_id`)
+) ENGINE=InnoDB COMMENT='订单详情表';
+
+
+CREATE TABLE `payment` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `order_no` varchar(64) NOT NULL,
+  `pay_method` tinyint COMMENT '1微信 2支付宝 3余额',
+  `pay_amount` decimal(10,2) NOT NULL,
+  `trade_no` varchar(64) COMMENT '第三方交易号',
+  `status` tinyint DEFAULT 0 COMMENT '0待支付 1已支付 2已退款',
+  `pay_time` datetime,
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_order_no` (`order_no`)
+) ENGINE=InnoDB COMMENT='支付记录表';
+
+
+CREATE TABLE `refund` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `order_no` varchar(64) NOT NULL,
+  `user_id` bigint NOT NULL,
+  `refund_amount` decimal(10,2) NOT NULL,
+  `reason` varchar(255) NOT NULL,
+  `status` tinyint DEFAULT 0 COMMENT '0申请中 1已同意 2已拒绝 3已退款',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB COMMENT='退款表';
+
+
+CREATE TABLE `coupon` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `type` tinyint COMMENT '1满减 2折扣 3立减',
+  `amount` decimal(10,2) COMMENT '优惠金额',
+  `min_amount` decimal(10,2) DEFAULT 0 COMMENT '满减门槛',
+  `start_time` datetime NOT NULL,
+  `end_time` datetime NOT NULL,
+  `total_count` int NOT NULL COMMENT '发放总量',
+  `remain_count` int NOT NULL COMMENT '剩余数量',
+  `status` tinyint DEFAULT 1 COMMENT '0禁用 1启用',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB COMMENT='优惠券表';
+
+
+
+
+CREATE TABLE `user_coupon` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL,
+  `coupon_id` bigint NOT NULL,
+  `status` tinyint DEFAULT 0 COMMENT '0未使用 1已使用 2已过期',
+  `order_no` varchar(64) COMMENT '使用的订单号',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB COMMENT='用户优惠券表';
+
+
+
+CREATE TABLE `seckill` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `product_id` bigint NOT NULL,
+  `seckill_price` decimal(10,2) NOT NULL COMMENT '秒杀价',
+  `original_price` decimal(10,2) NOT NULL,
+  `total_count` int NOT NULL COMMENT '秒杀总数',
+  `remain_count` int NOT NULL COMMENT '剩余数量',
+  `start_time` datetime NOT NULL,
+  `end_time` datetime NOT NULL,
+  `status` tinyint DEFAULT 1,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB COMMENT='秒杀活动表';
+
+CREATE TABLE `comment` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `order_id` bigint NOT NULL,
+  `product_id` bigint NOT NULL,
+  `user_id` bigint NOT NULL,
+  `rating` tinyint NOT NULL COMMENT '评分 1-5',
+  `content` text COMMENT '评价内容',
+  `images` varchar(1000) COMMENT '评价图片(逗号分隔)',
+  `is_anonymous` tinyint DEFAULT 0,
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_product_id` (`product_id`)
+) ENGINE=InnoDB COMMENT='商品评价表';
+
+
+
+CREATE TABLE `logistics` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `order_no` varchar(64) NOT NULL,
+  `logistics_no` varchar(64) NOT NULL COMMENT '物流单号',
+  `company` varchar(50) NOT NULL COMMENT '物流公司',
+  `status` tinyint DEFAULT 0 COMMENT '0待发货 1已发货 2已签收',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_order_no` (`order_no`)
+) ENGINE=InnoDB COMMENT='物流表';
+
+

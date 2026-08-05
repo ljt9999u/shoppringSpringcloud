@@ -1,0 +1,12 @@
+spring :
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:   #默认配置
+            connectTimeout: 2000
+            readTimeout: 2000
+          services-product1:    #精确配置
+            loggerLevel: full
+            connectTimeout: 5000
+            readTimeout: 5000

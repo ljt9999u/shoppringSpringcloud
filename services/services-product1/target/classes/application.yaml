@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: services-product1
+  cloud:
+    nacos:
+      username: nacos
+      password: nacos
+      config:
+        server-addr: 192.168.38.1:8848
+        username: ${spring.cloud.nacos.username}
+        password: ${spring.cloud.nacos.password}
+        import-check:
+          enabled: false
+        access-key: ${spring.cloud.nacos.username}
+        secret-key: ${spring.cloud.nacos.password}
+      discovery:
+        server-addr: 192.168.38.1:8848
+        username: ${spring.cloud.nacos.username}
+        password: ${spring.cloud.nacos.password}
+        access-key: ${spring.cloud.nacos.username}
+        secret-key: ${spring.cloud.nacos.password}
+    sentinel:
+      transport:
+        dashboard: localhost:8080
+      eager: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration
+
+server:
+  port: 8804

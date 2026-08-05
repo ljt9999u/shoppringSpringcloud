@@ -1,0 +1,57 @@
+server:
+  port: 800   # 网关对外端口，本地访问：http://127.0.0.1:800
+
+spring:
+  application:
+    name: gateway   # ⚠️当前网关服务名，会注册进Nacos，nacos服务列表显示gateway
+  cloud:
+    nacos:
+      username: nacos
+      password: nacos
+      discovery:
+        server-addr: 192.168.38.1:8848  # ⚠️Nacos服务地址IP:端口，确认nacos真正端口！！默认nacos是8848，你写8082，要确认nacos启动端口就是8082
+        grpc:
+          enable: true
+          metadata:
+            nacos.remote.request.timeout: 10000 # 把默认3秒超时放大到10秒
+        username: ${spring.cloud.nacos.username}
+        password: ${spring.cloud.nacos.password}
+        access-key: ${spring.cloud.nacos.username}
+        secret-key: ${spring.cloud.nacos.password}
+      config:
+        server-addr: 192.168.38.1:8848
+        username: ${spring.cloud.nacos.username}
+        password: ${spring.cloud.nacos.password}
+        import-check:
+          enabled: false  # 关闭nacos配置导入检查；不需要nacos配置中心时可以关掉，只做服务注册发现
+        access-key: ${spring.cloud.nacos.username}
+        secret-key: ${spring.cloud.nacos.password}
+
+    gateway:
+      discovery:
+        locator:
+          enabled: true        # 开启服务发现路由，支持 lb://服务名 负载均衡
+          lower-case-service-id: true # 服务id转小写，nacos服务名统一小写，防止大小写匹配失败
+      # 全局跨域配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "*"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: false # ⚠️重点：allow‑credentials为false，allowed‑origins才可以写*；如果改为true，origins不能用*，要写具体前端地址
+            max-age: 3600
+      # 路由规则：访问网关端口 + Path路径，转发到对应微服务
+      routes:
+        - id: services-product1
+          uri: lb://services-product1  # lb=负载均衡，指向nacos注册的服务名 services‑product1
+          predicates:
+            - Path=/api/product/**     # 匹配规则：网关收到 /api/product/** 请求，转发给product微服务
+        - id: services-oride
+          uri: lb://services-oride
+          predicates:
+            - Path=/api/oride/**
+        - id: services-user
+          uri: lb://services-user
+          predicates:
+            - Path=/api/user/**
