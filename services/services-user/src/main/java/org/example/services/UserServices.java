@@ -21,4 +21,9 @@ public interface UserServices {
      * 根据手机号查询用户
      */
     UserPOJO findUserByPhone(String phone);
+
+    /**
+     * 根据ID查询用户
+     */
+    UserPOJO findUserById(Long id);
 }

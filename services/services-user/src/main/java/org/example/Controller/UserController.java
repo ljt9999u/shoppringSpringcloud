@@ -53,6 +53,21 @@ public class UserController {
     }
 
     /**
+     * 根据ID查询用户（供其他服务 Feign 调用）
+     * GET /api/user/{id}
+     */
+    @GetMapping("/{id}")
+    public Result<UserPOJO> findById(@PathVariable Long id) {
+        UserPOJO user = userServices.findUserById(id);
+        if (user == null) {
+            return Result.fail("用户不存在");
+        }
+        // 脱敏：清空密码
+        user.setPassword(null);
+        return Result.success(user);
+    }
+
+    /**
      * 根据手机号查询用户
      * GET /api/user/findByPhone?phone=13800138000
      */

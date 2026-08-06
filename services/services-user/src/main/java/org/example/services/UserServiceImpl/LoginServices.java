@@ -114,4 +114,9 @@ public class LoginServices implements UserServices {
     public UserPOJO findUserByPhone(String phone) {
         return userMapper.findByPhone(phone);
     }
+
+    @Override
+    public UserPOJO findUserById(Long id) {
+        return userMapper.findById(id);
+    }
 }

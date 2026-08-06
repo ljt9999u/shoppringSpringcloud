@@ -3,6 +3,7 @@ import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import lombok.extern.slf4j.Slf4j;
 import org.example.Oride.OridePOJO;
 import org.example.Service.Impl.OrideImpl;
+import org.example.common.Result;
 import org.example.priperties.OrideProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -66,6 +67,28 @@ public class OrideController {
     public String redDB(){
         log.info("redDB");
         return "redDB";
+    }
+
+    // ========== 供其他服务调用的接口 ==========
+
+    /**
+     * 查询商品订单数（供商品服务 Feign 调用）
+     * GET /api/oride/count?productId=1
+     */
+    @GetMapping("/count")
+    public Result<Integer> getOrderCount(@RequestParam("productId") Long productId) {
+        int count = orideImpl.getOrderCountByProduct(productId);
+        return Result.success(count);
+    }
+
+    /**
+     * 查询商品评价数（供商品服务 Feign 调用）
+     * GET /api/oride/commentCount?productId=1
+     */
+    @GetMapping("/commentCount")
+    public Result<Integer> getCommentCount(@RequestParam("productId") Long productId) {
+        int count = orideImpl.getCommentCount(productId);
+        return Result.success(count);
     }
 
 }

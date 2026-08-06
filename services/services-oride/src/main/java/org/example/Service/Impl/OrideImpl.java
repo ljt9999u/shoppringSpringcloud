@@ -41,7 +41,7 @@ public class OrideImpl implements Orideservice {
         OridePOJO oridePOJO = new OridePOJO();
         oridePOJO.setId(productId);
         //总金额
-        oridePOJO.setTotalAmount(product.getPrice().multiply(new BigDecimal(product.getNum())));
+        oridePOJO.setTotalAmount(product.getPrice().multiply(new BigDecimal(product.getStock())));
         oridePOJO.setUserId(userId);
         oridePOJO.setNickname("张三");
         oridePOJO.setAddress("北京市朝阳区");
@@ -105,5 +105,17 @@ public class OrideImpl implements Orideservice {
         oridePOJO.setAddress("北京市朝阳区");
         oridePOJO.setProductList(null);
         return oridePOJO;
+    }
+
+    @Override
+    public int getOrderCountByProduct(Long productId) {
+        // 暂时返回模拟数据
+        return 50 + (int)(productId % 30);
+    }
+
+    @Override
+    public int getCommentCount(Long productId) {
+        // 暂时返回模拟数据
+        return 20 + (int)(productId % 15);
     }
 }

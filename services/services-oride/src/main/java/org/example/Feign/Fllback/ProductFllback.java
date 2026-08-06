@@ -15,9 +15,9 @@ public class ProductFllback implements ProductFeign {
         System.out.println("-----兜底回调---");
         Product product = new Product();
         product.setId(id);
-        product.setProductName("商品服务已关闭");
+        product.setName("商品服务已关闭");
         product.setPrice(BigDecimal.valueOf(0));
-        product.setNum(0);
+        product.setStock(0);
         return null;
     }
 }
