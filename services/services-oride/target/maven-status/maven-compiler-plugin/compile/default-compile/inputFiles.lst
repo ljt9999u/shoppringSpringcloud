@@ -1,11 +1,15 @@
+E:\weisf\demo2\services\services-oride\src\main\java\org\example\Config\CorsConfig.java
 E:\weisf\demo2\services\services-oride\src\main\java\org\example\Config\OrideConfig.java
 E:\weisf\demo2\services\services-oride\src\main\java\org\example\ConfigOride.java
 E:\weisf\demo2\services\services-oride\src\main\java\org\example\Controller\OrideController.java
 E:\weisf\demo2\services\services-oride\src\main\java\org\example\exception\MyBlockExceptionHandler.java
 E:\weisf\demo2\services\services-oride\src\main\java\org\example\Feign\Fllback\ProductFllback.java
+E:\weisf\demo2\services\services-oride\src\main\java\org\example\Feign\Fllback\UserFeignFallback.java
 E:\weisf\demo2\services\services-oride\src\main\java\org\example\Feign\GaoDefeign.java
 E:\weisf\demo2\services\services-oride\src\main\java\org\example\Feign\ProductFeign.java
+E:\weisf\demo2\services\services-oride\src\main\java\org\example\Feign\UserFeign.java
 E:\weisf\demo2\services\services-oride\src\main\java\org\example\interceptor\XTokenRequestInterceptor.java
+E:\weisf\demo2\services\services-oride\src\main\java\org\example\Mapper\OrderMapper.java
 E:\weisf\demo2\services\services-oride\src\main\java\org\example\OrideMainApilication.java
 E:\weisf\demo2\services\services-oride\src\main\java\org\example\priperties\OrideProperties.java
 E:\weisf\demo2\services\services-oride\src\main\java\org\example\Service\Impl\OrideImpl.java

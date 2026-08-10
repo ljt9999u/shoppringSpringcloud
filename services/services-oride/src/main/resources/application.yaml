@@ -35,10 +35,18 @@ spring:
             loggerLevel: full
             connectTimeout: 3000
             readTimeout: 5000
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration
+  # 数据库配置
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/shopping?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+# MyBatis 配置
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 #oride:
 #  timeout: 300000

@@ -55,3 +55,11 @@ spring:
           uri: lb://services-user
           predicates:
             - Path=/api/user/**
+        - id: services-merchant
+          uri: lb://services-merchant
+          predicates:
+            - Path=/api/merchant/**
+        - id: services-cart
+          uri: lb://services-cart
+          predicates:
+            - Path=/api/cart/**

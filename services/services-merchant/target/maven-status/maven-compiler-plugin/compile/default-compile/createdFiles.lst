@@ -1,0 +1,8 @@
+org\example\MerchantApplication.class
+org\example\Feign\UserFeign.class
+org\example\Controller\MerchantController.class
+org\example\Service\MerchantService.class
+org\example\Mapper\MerchantMapper.class
+org\example\config\CorsConfig.class
+org\example\Feign\Fallback\UserFeignFallback.class
+org\example\Service\Impl\MerchantServiceImpl.class

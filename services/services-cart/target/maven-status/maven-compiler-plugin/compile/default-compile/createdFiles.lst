@@ -1,0 +1,10 @@
+org\example\Feign\UserFeign.class
+org\example\Mapper\CartMapper.class
+org\example\Feign\Fallback\ProductFeignFallback.class
+org\example\CartApplication.class
+org\example\Feign\ProductFeign.class
+org\example\config\CorsConfig.class
+org\example\Feign\Fallback\UserFeignFallback.class
+org\example\Service\Impl\CartServiceImpl.class
+org\example\Service\CartService.class
+org\example\Controller\CartController.class

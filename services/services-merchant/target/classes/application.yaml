@@ -1,0 +1,40 @@
+server:
+  port: 8008
+
+spring:
+  application:
+    name: services-merchant
+  cloud:
+    nacos:
+      username: nacos
+      password: nacos
+      config:
+        server-addr: 192.168.38.1:8848
+        username: ${spring.cloud.nacos.username}
+        password: ${spring.cloud.nacos.password}
+        import-check:
+          enabled: false
+        access-key: ${spring.cloud.nacos.username}
+        secret-key: ${spring.cloud.nacos.password}
+      discovery:
+        server-addr: 192.168.38.1:8848
+        username: ${spring.cloud.nacos.username}
+        password: ${spring.cloud.nacos.password}
+        access-key: ${spring.cloud.nacos.username}
+        secret-key: ${spring.cloud.nacos.password}
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/shopping?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+
+# MyBatis 配置
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# Feign 日志
+logging:
+  level:
+    org.example.Feign: DEBUG

@@ -1,8 +1,17 @@
+E:\weisf\demo2\model\src\main\java\org\example\Cart\Cart.java
 E:\weisf\demo2\model\src\main\java\org\example\common\PageResult.java
 E:\weisf\demo2\model\src\main\java\org\example\common\R.java
 E:\weisf\demo2\model\src\main\java\org\example\common\Result.java
 E:\weisf\demo2\model\src\main\java\org\example\config\RestTempLate.java
 E:\weisf\demo2\model\src\main\java\org\example\Main.java
+E:\weisf\demo2\model\src\main\java\org\example\Merchant\Merchant.java
+E:\weisf\demo2\model\src\main\java\org\example\Merchant\UserAddress.java
+E:\weisf\demo2\model\src\main\java\org\example\Order\Comment.java
+E:\weisf\demo2\model\src\main\java\org\example\Order\Logistics.java
+E:\weisf\demo2\model\src\main\java\org\example\Order\OrderDetail.java
+E:\weisf\demo2\model\src\main\java\org\example\Order\OrderPOJO.java
+E:\weisf\demo2\model\src\main\java\org\example\Order\Payment.java
+E:\weisf\demo2\model\src\main\java\org\example\Order\Refund.java
 E:\weisf\demo2\model\src\main\java\org\example\Oride\OridePOJO.java
 E:\weisf\demo2\model\src\main\java\org\example\Product\Product.java
 E:\weisf\demo2\model\src\main\java\org\example\User\UserPOJO.java
