@@ -1,12 +1,16 @@
 package org.example.Service.Impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.example.Mapper.ProductMapper;
 import org.example.Product.Product;
 import org.example.Service.ProductService;
+import org.example.cache.CacheKeys;
+import org.example.cache.RedisCacheService;
 import org.example.common.PageResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -18,9 +22,24 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private ProductMapper productMapper;
 
+    @Autowired
+    private RedisCacheService cacheService;
+
+    /** 商品详情缓存基准 TTL：30 分钟 */
+    private static final Duration PRODUCT_TTL = Duration.ofMinutes(30);
+    /** 商品详情 TTL 随机抖动上界：0~5 分钟，防雪崩 */
+    private static final long PRODUCT_TTL_JITTER_SECONDS = 300;
+
     @Override
     public Product getProduct(Long productId) {
-        return productMapper.findById(productId);
+        // 热点读：空值缓存防穿透 + 互斥锁防击穿 + 随机TTL防雪崩
+        return cacheService.queryWithProtect(
+                CacheKeys.productDetail(productId),
+                new TypeReference<Product>() {
+                },
+                PRODUCT_TTL,
+                PRODUCT_TTL_JITTER_SECONDS,
+                () -> productMapper.findById(productId));
     }
 
     @Override
@@ -89,16 +108,30 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public int updateProduct(Product product) {
-        return productMapper.update(product);
+        int rows = productMapper.update(product);
+        // DB 更新成功后删除详情缓存，下次查询自动重建，避免脏数据
+        if (rows > 0 && product.getId() != null) {
+            cacheService.evict(CacheKeys.productDetail(product.getId()));
+        }
+        return rows;
     }
 
     @Override
     public int deleteProduct(Long id) {
-        return productMapper.deleteById(id);
+        int rows = productMapper.deleteById(id);
+        if (rows > 0) {
+            cacheService.evict(CacheKeys.productDetail(id));
+        }
+        return rows;
     }
 
     @Override
     public boolean reduceStock(Long id, int quantity) {
-        return productMapper.reduceStock(id, quantity) > 0;
+        boolean success = productMapper.reduceStock(id, quantity) > 0;
+        // 库存变化后删除详情缓存，防止下单后读到旧库存
+        if (success) {
+            cacheService.evict(CacheKeys.productDetail(id));
+        }
+        return success;
     }
 }

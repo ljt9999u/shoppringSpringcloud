@@ -9,7 +9,7 @@ spring:
       username: nacos
       password: nacos
       config:
-        server-addr: 192.168.38.1:8848
+        server-addr: 192.168.28.1:8848
         username: ${spring.cloud.nacos.username}
         password: ${spring.cloud.nacos.password}
         file-extension: properties
@@ -20,7 +20,7 @@ spring:
         access-key: ${spring.cloud.nacos.username}
         secret-key: ${spring.cloud.nacos.password}
       discovery:
-        server-addr: 192.168.38.1:8848
+        server-addr: 192.168.28.1:8848
         username: ${spring.cloud.nacos.username}
         password: ${spring.cloud.nacos.password}
         access-key: ${spring.cloud.nacos.username}
@@ -41,6 +41,11 @@ spring:
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+# 开启 Sentinel 对 Feign 的熔断降级，使 @FeignClient(fallback=...) 在下游服务故障/超时时生效
+feign:
+  sentinel:
+    enabled: true
 
 # MyBatis 配置
 mybatis:

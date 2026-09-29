@@ -1,4 +1,4 @@
-package org.example.Config;
+package org.example.config;
 
 import feign.Retryer;
 import org.springframework.context.annotation.Bean;

@@ -1,5 +1,6 @@
 package org.example.services;
 
+import org.example.common.PageResult;
 import org.example.common.Result;
 import org.example.User.UserPOJO;
 import org.example.vo.LoginVO;
@@ -26,4 +27,24 @@ public interface UserServices {
      * 根据ID查询用户
      */
     UserPOJO findUserById(Long id);
+
+    /**
+     * 修改个人资料（昵称、邮箱、头像、性别）
+     */
+    Result<Boolean> updateProfile(UserPOJO userPOJO);
+
+    /**
+     * 修改密码（需校验旧密码）
+     */
+    Result<Boolean> updatePassword(Long userId, String oldPassword, String newPassword);
+
+    /**
+     * 修改账号状态（管理端：0禁用 1启用）
+     */
+    Result<Boolean> updateStatus(Long id, int status);
+
+    /**
+     * 分页查询用户（管理端）
+     */
+    Result<PageResult<UserPOJO>> page(int pageNum, int pageSize);
 }

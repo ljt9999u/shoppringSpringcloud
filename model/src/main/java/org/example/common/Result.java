@@ -22,6 +22,8 @@ public class Result<T> {
         return result;
     }
 
+
+
     /**
      * 成功 - 无数据
      */

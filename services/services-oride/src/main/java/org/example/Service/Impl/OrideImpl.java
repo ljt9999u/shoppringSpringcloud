@@ -14,6 +14,7 @@ import org.example.User.UserPOJO;
 import org.example.common.PageResult;
 import org.example.common.Result;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
@@ -37,8 +38,10 @@ public class OrideImpl implements Orideservice {
     RestTemplate restemplate;
     @Autowired
     DiscoveryClient discoveryClient;
+    @Qualifier("org.example.Feign.ProductFeign")
     @Autowired
     ProductFeign productFeign;
+    @Qualifier("org.example.Feign.UserFeign")
     @Autowired
     UserFeign userFeign;
     @Autowired
@@ -73,14 +76,12 @@ public class OrideImpl implements Orideservice {
 
     @Override
     public Product getProductFromRemote(Long productId) {
-        List<ServiceInstance> instances = discoveryClient.getInstances("services-product1");
-        if (instances == null || instances.isEmpty()) {
-            throw new RuntimeException("商品服务未找到");
-        }
-        ServiceInstance instance = instances.get(0);
-        String url = "http://" + instance.getHost() + ":" + instance.getPort() + "/product/" + productId;
-        log.info("远程调用商品服务，url:{}", url);
-        return restemplate.getForObject(url, Product.class);
+        // 直接写服务名，不需要DiscoveryClient
+        Product product=productFeign.getProductById(productId);
+        return product;
+//        String url = "http://services-product1/product/" + productId;
+//        log.info("远程调用商品服务，url:{}", url);
+//        return restemplate.getForObject(url, Product.class);
     }
 
     @Override

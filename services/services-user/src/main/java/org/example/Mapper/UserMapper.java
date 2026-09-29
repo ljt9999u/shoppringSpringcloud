@@ -1,10 +1,9 @@
 package org.example.Mapper;
 
 import org.example.User.UserPOJO;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Options;
-import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.*;
+
+import java.util.List;
 
 /**
  * 用户 Mapper
@@ -13,10 +12,10 @@ import org.apache.ibatis.annotations.Select;
 public interface UserMapper {
 
     /**
-     * 注册用户 - 插入新用户
+     * 注册用户 - 插入新用户（含昵称、邮箱、头像、性别等资料字段）
      */
-    @Insert("insert into user (username, password, phone, role_code, status) " +
-            "values (#{username}, #{password}, #{phone}, #{roleCode}, #{status})")
+    @Insert("insert into user (username, password, phone, email, avatar, nickname, gender, role_code, status) " +
+            "values (#{username}, #{password}, #{phone}, #{email}, #{avatar}, #{nickname}, #{gender}, #{roleCode}, #{status})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(UserPOJO userPOJO);
 
@@ -37,4 +36,35 @@ public interface UserMapper {
      */
     @Select("select * from user where id = #{id}")
     UserPOJO findById(Long id);
+
+    /**
+     * 修改个人资料（昵称、邮箱、头像、性别）
+     */
+    @Update("update user set nickname = #{nickname}, email = #{email}, avatar = #{avatar}, gender = #{gender} " +
+            "where id = #{id}")
+    int updateProfile(UserPOJO userPOJO);
+
+    /**
+     * 修改密码
+     */
+    @Update("update user set password = #{password} where id = #{id}")
+    int updatePassword(@Param("id") Long id, @Param("password") String password);
+
+    /**
+     * 修改账号状态（0禁用 1启用，管理端）
+     */
+    @Update("update user set status = #{status} where id = #{id}")
+    int updateStatus(@Param("id") Long id, @Param("status") int status);
+
+    /**
+     * 用户总数
+     */
+    @Select("select count(*) from user")
+    long count();
+
+    /**
+     * 分页查询用户（管理端）
+     */
+    @Select("select * from user order by id desc limit #{offset}, #{pageSize}")
+    List<UserPOJO> findPage(@Param("offset") int offset, @Param("pageSize") int pageSize);
 }
