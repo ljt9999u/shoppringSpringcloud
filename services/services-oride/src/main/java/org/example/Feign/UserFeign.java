@@ -17,12 +17,16 @@ public interface UserFeign {
 
     /**
      * 根据ID查询用户（下单时校验用户、查询时补充用户信息）
+     * 远程对应：services-user → UserController#findById
+     * 远程路径：GET /api/user/{id}
      */
     @GetMapping("/api/user/{id}")
     Result<UserPOJO> getUserById(@PathVariable("id") Long id);
 
     /**
      * 根据手机号查询用户
+     * 远程对应：services-user → UserController#findByPhone
+     * 远程路径：GET /api/user/findByPhone?phone=
      */
     @GetMapping("/api/user/findByPhone")
     Result<UserPOJO> getUserByPhone(@RequestParam("phone") String phone);

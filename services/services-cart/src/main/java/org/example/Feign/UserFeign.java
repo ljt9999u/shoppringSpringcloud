@@ -16,6 +16,8 @@ public interface UserFeign {
 
     /**
      * 根据ID查询用户（加购时校验用户）
+     * 远程对应：services-user → UserController#findById
+     * 远程路径：GET /api/user/{id}
      */
     @GetMapping("/api/user/{id}")
     Result<UserPOJO> getUserById(@PathVariable("id") Long id);

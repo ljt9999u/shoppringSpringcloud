@@ -17,13 +17,16 @@ public interface ProductFeign {
 
     /**
      * 根据ID查询商品（下单时获取商品信息）
+     * 远程对应：services-product1 → ProductContoller#getById
+     * 远程路径：GET /api/product/{id}
      */
     @GetMapping("/api/product/{id}")
     Product getProductById(@PathVariable("id") Long id);
 
     /**
      * 扣减库存（下单时扣减商品库存）
-     * POST /api/product/reduceStock?id=1&quantity=2
+     * 远程对应：services-product1 → ProductContoller#reduceStock
+     * 远程路径：POST /api/product/reduceStock?id=&quantity=
      */
     @PostMapping("/api/product/reduceStock")
     boolean reduceStock(@RequestParam("id") Long id, @RequestParam("quantity") int quantity);

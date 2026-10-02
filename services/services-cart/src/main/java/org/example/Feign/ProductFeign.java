@@ -16,6 +16,8 @@ public interface ProductFeign {
 
     /**
      * 根据ID查询商品（加购/查询购物车时获取商品信息与库存）
+     * 远程对应：services-product1 → ProductContoller#getById
+     * 远程路径：GET /api/product/{id}
      */
     @GetMapping("/api/product/{id}")
     Result<Product> getProductById(@PathVariable("id") Long id);

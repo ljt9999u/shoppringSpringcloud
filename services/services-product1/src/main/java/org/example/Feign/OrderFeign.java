@@ -15,12 +15,16 @@ public interface OrderFeign {
 
     /**
      * 获取商品的订单数量（商品表中没有这个数据，需要从订单服务统计）
+     * 远程对应：services-oride → OrideController#getOrderCount
+     * 远程路径：GET /api/oride/count?productId=
      */
     @GetMapping("/api/oride/count")
     Result<Integer> getOrderCountByProduct(@RequestParam("productId") Long productId);
 
     /**
      * 获取商品评价数（商品表中没有这个数据，需要从订单服务统计）
+     * 远程对应：services-oride → OrideController#getCommentCount
+     * 远程路径：GET /api/oride/commentCount?productId=
      */
     @GetMapping("/api/oride/commentCount")
     Result<Integer> getCommentCount(@RequestParam("productId") Long productId);
