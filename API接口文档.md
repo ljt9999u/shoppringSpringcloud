@@ -59,6 +59,7 @@ Authorization: Bearer <登录返回的 token>
   - `GET /api/category/**`、`GET /api/brand/**`（分类、品牌浏览）
   - `GET /api/merchant/**`（店铺浏览）
   - `GET /api/oride/comment/**`（评价浏览）
+  - `POST /api/oride/pay/alipay/notify`（支付宝服务器异步回调，验签保证安全）
 - 购物车、下单、支付、资料修改、增删改类接口均需登录
 
 分页接口的 `data` 为 `PageResult<T>`：
@@ -597,6 +598,101 @@ GET /api/oride/order/detail/{orderId}
 ```
 
 响应：`Result<List<OrderDetail>>`
+
+### 支付宝支付（沙箱）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/oride/pay/alipay/{orderNo} | 生成支付宝收银台 HTML 表单（需登录） |
+| POST | /api/oride/pay/alipay/notify | 支付宝异步回调（支付宝服务器调用，白名单放行） |
+
+#### 1. 生成支付表单
+
+```
+GET /api/oride/pay/alipay/{orderNo}
+```
+
+**路径参数**：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| orderNo | String | 订单号（下单接口返回），订单必须为「待付款」状态 |
+
+**响应**：`Result<String>`，`data` 为支付宝收银台 HTML 表单
+
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": "<form name=\"punchout_form\" method=\"post\" action=\"https://openapi-sandbox.dl.alipaydev.com/gateway.do\">...</form><script>document.forms[0].submit();</script>"
+}
+```
+
+**前端用法**：将 `data` 写入页面（如 `document.write(form)` 或赋值给 div 的 `innerHTML` 后执行 script），浏览器自动提交表单跳转到支付宝沙箱收银台。
+
+**失败场景**：
+
+```json
+{ "code": 500, "message": "订单不存在，orderNo=xxx", "data": null }
+{ "code": 500, "message": "订单状态不允许支付，当前状态=1", "data": null }
+```
+
+#### 2. 异步回调（notify）
+
+```
+POST /api/oride/pay/alipay/notify
+Content-Type: application/x-www-form-urlencoded
+```
+
+支付宝服务器在支付成功后调用，**无 JWT**（网关白名单放行），核心参数：
+
+| 参数 | 说明 |
+|------|------|
+| out_trade_no | 商户订单号（= 系统 orderNo） |
+| trade_no | 支付宝交易号（存入 payment.trade_no） |
+| trade_status | 交易状态，仅 `TRADE_SUCCESS` / `TRADE_FINISHED` 触发更新 |
+| total_amount | 实付金额（与订单 pay_amount 比对，不一致拒绝） |
+| sign / sign_type | 签名，用支付宝公钥验签 |
+
+**处理逻辑（4 层防护）**：
+
+1. **验签**：使用支付宝公钥 RSA2 验签，防止伪造回调
+2. **状态校验**：只处理 `TRADE_SUCCESS` / `TRADE_FINISHED`
+3. **幂等**：支付记录已存在且 status=1（已支付）时直接返回 success
+4. **金额校验**：回调金额与订单金额不一致则拒绝
+
+**响应**：纯文本 `success` / `failure`。返回 `success` 后支付宝不再重发；返回 `failure` 支付宝会在 25 小时内多次重试。
+
+**回调成功后的数据变更**：
+
+- `orders.status`：0（待付款）→ 1（待发货），记录 `pay_time`
+- `payment` 表：插入/更新支付记录，`pay_method=2`（支付宝），status=1（已支付）
+
+#### 3. 沙箱配置说明（application.yaml）
+
+```yaml
+alipay:
+  app-id: 9021000138629565                     # 沙箱应用 APPID
+  merchant-private-key: xxx                    # 应用私钥（请求签名）
+  alipay-public-key: xxx                       # 支付宝公钥（回调验签）
+  gateway-url: https://openapi-sandbox.dl.alipaydev.com/gateway.do
+  notify-url: http://你的公网地址/api/oride/pay/alipay/notify
+  return-url: http://localhost:5173/pay/result # 支付完成前端跳转页
+  sign-type: RSA2
+```
+
+- **notify-url 必须公网可访问**：本地开发用内网穿透（cpolar / natapp）将回调地址映射到公网
+- 未配置公网回调时，可手动调用 `POST /api/oride/order/pay?orderId=&payMethod=2&tradeNo=` 模拟支付成功
+- 沙箱买家账号在 [支付宝开放平台](https://open.alipay.com/develop/sandbox/app)「沙箱账号」中获取，付款不产生真实交易
+
+#### 4. 完整支付流程
+
+1. `POST /api/oride/order/create` 下单 → 返回 orderNo
+2. `GET /api/oride/pay/alipay/{orderNo}` 获取收银台 HTML 表单
+3. 前端输出表单 → 自动跳转支付宝沙箱收银台
+4. 沙箱买家账号登录付款
+5. 支付宝异步 POST 回调 → 验签 → 订单置为「待发货」→ 记录支付记录
+6. 前端可通过 `GET /api/oride/payment/{orderNo}` 轮询支付结果
 
 ### 支付查询
 

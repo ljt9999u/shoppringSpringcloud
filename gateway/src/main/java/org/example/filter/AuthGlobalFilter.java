@@ -93,6 +93,10 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         if ("/api/user/login".equals(path) || "/api/user/register".equals(path)) {
             return true;
         }
+        // 支付宝服务器异步回调（无 JWT，由支付宝验签保证安全）
+        if ("/api/oride/pay/alipay/notify".equals(path)) {
+            return true;
+        }
         // GET 浏览类接口：商品、分类、品牌、商家店铺、商品评价
         if (method == HttpMethod.GET) {
             if (path.startsWith("/api/product/")) {

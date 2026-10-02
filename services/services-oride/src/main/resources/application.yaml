@@ -4,6 +4,7 @@ spring:
   config:
     import:
       - optional:service-orider.properties
+      - optional:classpath:alipay-secret.yml
   cloud:
     nacos:
       username: nacos
@@ -60,6 +61,20 @@ mybatis:
 oride:
   timeout: default-30min
   auto-confirm: default-7d
+
+# 支付宝沙箱配置（敏感参数放在 alipay-secret.yml，已 gitignore，不入库）
+alipay:
+  app-id: ${ALIPAY_APP_ID:}
+  merchant-private-key: ${ALIPAY_PRIVATE_KEY:}
+  alipay-public-key: ${ALIPAY_PUBLIC_KEY:}
+  gateway-url: https://openapi-sandbox.dl.alipaydev.com/gateway.do
+  # 支付结果异步回调地址：必须公网可访问，本地开发请用内网穿透（cpolar/natapp）替换域名
+  notify-url: http://你的公网地址/api/oride/pay/alipay/notify
+  # 支付完成后浏览器跳转地址（前端页面）
+  return-url: http://localhost:5173/pay/result
+  sign-type: RSA2
+  charset: utf-8
+  format: json
 #配置feign的日志级别
 logging:
   level:

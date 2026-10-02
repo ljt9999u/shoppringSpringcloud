@@ -3,16 +3,19 @@ import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import lombok.extern.slf4j.Slf4j;
 import org.example.Oride.OridePOJO;
 import org.example.Order.*;
+import org.example.Service.AlipayService;
 import org.example.Service.Impl.OrideImpl;
 import org.example.common.PageResult;
 import org.example.common.Result;
 import org.example.priperties.OrideProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 
 @RequestMapping("/api/oride")
@@ -26,6 +29,9 @@ public class OrideController {
 
     @Autowired
     OrideProperties orideProperties;
+
+    @Autowired
+    AlipayService alipayService;
 
 
 
@@ -233,6 +239,34 @@ public class OrideController {
     public Result<List<OrderDetail>> getOrderDetails(@PathVariable Long orderId) {
         List<OrderDetail> details = orideImpl.getOrderDetails(orderId);
         return Result.success(details);
+    }
+
+    // ========== 支付宝支付 ==========
+
+    /**
+     * 支付宝支付（生成收银台页面）
+     * GET /api/oride/pay/alipay/{orderNo}
+     * 返回 HTML 表单，浏览器直接打开即可跳转支付宝收银台
+     */
+    @GetMapping("/pay/alipay/{orderNo}")
+    public Result<String> alipayPay(@PathVariable String orderNo) {
+        try {
+            String form = alipayService.createPayForm(orderNo);
+            return Result.success(form);
+        } catch (Exception e) {
+            log.error("支付宝支付失败，订单号：{}", orderNo, e);
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 支付宝异步回调（支付成功通知）
+     * POST /api/oride/pay/alipay/notify
+     * 支付宝服务器直接调用，无 JWT，必须返回纯文本 success/failure
+     */
+    @PostMapping(value = "/pay/alipay/notify", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String alipayNotify(@RequestParam Map<String, String[]> params) {
+        return alipayService.handleNotify(params);
     }
 
     // ========== 支付查询 ==========
