@@ -36,7 +36,8 @@ public class UserController {
     /**
      * 用户注册
      * POST /api/user/register
-     * body: { "username": "张三", "password": "123456", "phone": "13800138000", "roleCode": "USER" }
+     * body: { "username": "张三", "password": "123456", "phone": "13800138000" }
+     * 注意：角色由服务端强制分配为 USER，请求体传 roleCode 无效
      */
     @PostMapping("/register")
     public Result<RegisterVO> register(@RequestBody UserPOJO userPOJO) {

@@ -46,9 +46,8 @@ public class LoginServices implements UserServices {
         String md5Password = Md5Util.getMD5String(userPOJO.getPassword());
 
         // 4. 设置默认值
-        if (userPOJO.getRoleCode() == null || userPOJO.getRoleCode().isEmpty()) {
-            userPOJO.setRoleCode("USER");  // 默认普通用户
-        }
+        // 安全：角色一律由服务端强制为普通用户，忽略客户端传入的 roleCode，防止越权注册管理员
+        userPOJO.setRoleCode("USER");
         userPOJO.setPassword(md5Password);
         userPOJO.setStatus(1);  // 默认启用
 
