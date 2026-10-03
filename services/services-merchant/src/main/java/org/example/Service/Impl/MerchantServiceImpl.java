@@ -138,6 +138,10 @@ public class MerchantServiceImpl implements MerchantService {
 
     // ========== 收货地址业务 ==========
 
+    /**
+     * 新增收货地址：若设为默认，先清除该用户原有默认再插入，两步写必须同事务
+     */
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public UserAddress addAddress(UserAddress address) {
         // 如果设置为默认，先清除该用户其他默认地址

@@ -83,3 +83,28 @@ logging:
 
 server:
   port: 8004
+
+# ========== Seata 分布式事务（AT 模式） ==========
+# enabled=false：未部署 seata-server 时关闭，@GlobalTransactional 不生效，自动退化为本地 @Transactional；
+# 部署 seata-server 2.x 并注册到 Nacos 后，把 enabled 改为 true 即启用"下单扣库存"跨服务强一致
+seata:
+  enabled: false
+  application-id: ${spring.application.name}
+  # 事务分组：客户端通过分组名映射到 TC 集群（vgroup-mapping）
+  tx-service-group: shopping_tx_group
+  service:
+    vgroup-mapping:
+      shopping_tx_group: default
+  registry:
+    type: nacos
+    nacos:
+      server-addr: 192.168.28.1:8848
+      namespace: ""
+      group: SEATA_GROUP
+      application: seata-server
+  config:
+    type: nacos
+    nacos:
+      server-addr: 192.168.28.1:8848
+      namespace: ""
+      group: SEATA_GROUP

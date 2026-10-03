@@ -47,6 +47,12 @@
             <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
         </dependency>
 
+        <!-- Seata 分布式事务（版本由 spring-cloud-alibaba-dependencies 2023.0.3.2 统一管理，内置 Seata 2.0.0） -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+        </dependency>
+
         <!-- model 模块 -->
         <dependency>
             <groupId>org.example</groupId>

@@ -51,3 +51,27 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# ========== Seata 分布式事务（AT 模式，RM 角色：扣库存分支） ==========
+# enabled=false：未部署 seata-server 时关闭，不影响服务启动与现有流程；
+# TC 启动并注册 Nacos 后改为 true，本服务的 reduceStock 将随订单服务的全局事务一起提交/回滚
+seata:
+  enabled: false
+  application-id: ${spring.application.name}
+  tx-service-group: shopping_tx_group
+  service:
+    vgroup-mapping:
+      shopping_tx_group: default
+  registry:
+    type: nacos
+    nacos:
+      server-addr: 192.168.28.1:8848
+      namespace: ""
+      group: SEATA_GROUP
+      application: seata-server
+  config:
+    type: nacos
+    nacos:
+      server-addr: 192.168.28.1:8848
+      namespace: ""
+      group: SEATA_GROUP

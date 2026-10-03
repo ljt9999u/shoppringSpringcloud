@@ -146,6 +146,101 @@ feign:
 
 ---
 
+## 事务管理说明（本地事务 @Transactional）
+
+### 1. 判断原则
+
+**一个方法内对数据库执行 ≥2 次写操作（insert/update/delete）且必须"要么全成功要么全回滚"时，才显式开启事务**；单条 SQL 本身由 MySQL 保证原子性，不加事务。只读查询不加事务。
+
+### 2. 已开启事务的方法（统一 `rollbackFor = Exception.class`）
+
+| 服务 | 方法 | 事务内的多步写 |
+|------|------|---------------|
+| services-oride | `OrideImpl#createOrder` | 插订单主表 + 批量插订单明细（另由 Seata 全局事务覆盖远程扣库存，见下一章） |
+| services-oride | `OrideImpl#payOrder` | 更新订单为已支付 + 写入支付记录 |
+| services-oride | `OrideImpl#shipOrder` | 更新订单为待收货 + 写入物流记录 |
+| services-oride | `OrideImpl#receiveOrder` | 订单置已完成 + 物流置已签收 |
+| services-oride | `AlipayService#handleNotify` | 支付宝回调：更新订单状态 + 写入/更新支付记录 |
+| services-merchant | `MerchantServiceImpl#addAddress` | 清除用户旧默认地址 + 插入新地址 |
+| services-merchant | `MerchantServiceImpl#setDefaultAddress` | 清除全部默认 + 设置当前默认 |
+
+统一写法：
+
+```java
+@Transactional(rollbackFor = Exception.class)
+```
+
+> **为什么必须写 `rollbackFor = Exception.class`？** Spring 的 `@Transactional` 默认**只对 `RuntimeException` 和 `Error` 回滚，受检异常（Checked Exception，如 `IOException`、`SQLException`）默认提交不回滚**。显式指定后任何异常都回滚。
+
+### 3. 经评估不需要事务的方法
+
+- 用户服务（注册/改资料/改密码/改状态）、商品/分类/品牌增删改、购物车增改删、取消订单/申请退款/评价：均为**单表单语句**写
+- 上述方法中写库后的 Redis `evict` 是缓存操作，不参与数据库事务（缓存删除失败仅打 warn，下次查询自动重建）
+
+---
+
+## 分布式事务说明（Seata AT，下单扣库存强一致）
+
+### 1. 要解决的问题
+
+`createOrder` 的执行链路跨两个微服务：
+
+```
+services-oride（TM）                         services-product1（RM）
+  校验用户 → Feign 扣减库存（远程）  ───────►  update product 扣库存
+  插订单主表
+  插订单明细
+```
+
+订单库的 `@Transactional` **无法回滚远程商品服务已扣的库存**——订单创建失败时可能出现"库存扣了但订单没生成"，这是分布式事务问题。
+
+### 2. 方案选型：Seata AT 与 MQ 最终一致性对比
+
+| 对比项 | Seata AT（本项目采用） | MQ 最终一致性（未采用） |
+|--------|----------------------|----------------------|
+| 一致性模型 | 强一致（最终提交/回滚，业务无感知） | 最终一致，有延迟窗口 |
+| 与现有链路 | 保持 Feign **同步**调用，库存不足立即失败 | 需改为"建单→发消息→异步扣库存→失败补偿"，下单状态机要重写 |
+| 技术栈契合 | 原生支持 MyBatis + MySQL；SCA 2023.0.3.2 已内置 Seata 2.0.0 | 需额外引入并部署 RocketMQ/RabbitMQ |
+| 注册中心 | TC 直接注册现有 Nacos（192.168.28.1:8848） | 无关 |
+| 代码侵入 | 1 个 `@GlobalTransactional`，XID 随 Feign 自动传播 | 消息表 + 生产者 + 消费者 + 重试/死信 + 对账 |
+| 适用 | 低 TPS、强一致的交易链路（下单扣库存） | 高吞吐、可容忍延迟的场景（通知、统计、日志） |
+
+### 3. 集成清单
+
+| 改动 | 位置 |
+|------|------|
+| 引入 `spring-cloud-starter-alibaba-seata`（版本由 spring-cloud-alibaba-dependencies 统一管理） | oride、product1 两个 pom.xml |
+| `seata:` 配置块（事务分组 `shopping_tx_group`、注册/配置中心均为 Nacos） | 两个服务的 application.yaml |
+| `@GlobalTransactional(rollbackFor=Exception.class, name="createOrder")` | `OrideImpl#createOrder`（保留 `@Transactional` 作本地兜底） |
+| AT 模式回滚日志表 `undo_log` | [db/seata_undo_log.sql](file:///D:/weifuwu/demo2/db/seata_undo_log.sql)（脚本会自动创建 `shopping` 库） |
+
+### 4. 工作原理（AT 模式）
+
+1. 订单服务方法开启**全局事务**，生成全局 XID；XID 通过 Seata 的 Feign 拦截器随请求头自动传到商品服务
+2. 订单写库、商品扣库存各自是**分支事务**：执行时 Seata 自动记录前后镜像到 `undo_log` 并提交本地锁
+3. 全部分支成功 → TC 通知异步删除 undo_log（提交）；任一分支失败/抛异常 → TC 通知各 RM 用 undo_log **自动反向补偿**（回滚）
+4. 业务代码只写正向逻辑，回滚由框架完成，无需手写补偿
+
+### 5. 启用步骤（当前默认关闭）
+
+考虑到需要独立部署事务协调器，集成默认**关闭**，不影响现有开发运行：
+
+```yaml
+seata:
+  enabled: false   # 两个服务当前均为 false
+```
+
+启用时按顺序操作：
+
+1. **部署 seata-server 2.x**，配置 `registry.type=nacos`、`config.type=nacos`（Nacos 地址 `192.168.28.1:8848`，分组 `SEATA_GROUP`，集群名 `default`），启动后在 Nacos 服务列表可见 `seata-server`
+2. **建 undo_log 表**：在 MySQL 执行 `db/seata_undo_log.sql`
+3. **开启开关**：oride、product1 两个 application.yaml 中 `seata.enabled` 改为 `true`
+4. 重启两个服务，发起下单即可在 seata-server 控制台看到全局事务与分支事务
+
+> 关闭时（`enabled=false`）：Seata 自动配置不生效，`@GlobalTransactional` 被忽略，链路退化为"本地事务 + Feign 同步调用"，即本次开启本地事务后的行为，服务可正常启动运行。
+
+---
+
 ## 二、用户服务 services-user
 
 **端口**：8006 ｜ **网关前缀**：/api/user ｜ **启动类**：ApplicationUser
@@ -168,10 +263,11 @@ Body (UserPOJO):
 {
   "username": "张三",
   "password": "123456",
-  "phone": "13800138000",
-  "roleCode": "USER"
+  "phone": "13800138000"
 }
 ```
+
+> 安全说明：注册时角色由服务端强制分配为 `USER`，请求体中即使传入 `roleCode`（如 `ADMIN`）也会被忽略，防止越权注册管理员账号。
 
 响应：`Result<RegisterVO>`
 

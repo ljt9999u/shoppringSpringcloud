@@ -14,6 +14,7 @@ import org.example.Order.Payment;
 import org.example.priperties.AlipayProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -79,10 +80,13 @@ public class AlipayService {
 
     /**
      * 处理支付宝异步回调（支付成功通知）
+     * 事务说明：更新订单状态 + 写入/更新支付记录为两步写，需同事务，任一失败整体回滚并返回
+     * failure，支付宝会按策略重试回调。验签为本地 CPU 运算，不涉及远程连接，可置于事务内。
      *
      * @param params 回调参数
      * @return 支付宝要求的响应文本，success / failure
      */
+    @Transactional(rollbackFor = Exception.class)
     public String handleNotify(Map<String, String[]> params) {
         // 1. 参数转 Map<String, String>
         Map<String, String> notifyParams = new HashMap<>();

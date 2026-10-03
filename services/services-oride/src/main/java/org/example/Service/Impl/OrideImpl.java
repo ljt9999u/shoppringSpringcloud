@@ -2,6 +2,7 @@ package org.example.Service.Impl;
 
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.Feign.ProductFeign;
 import org.example.Feign.UserFeign;
@@ -19,6 +20,7 @@ import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -104,6 +106,16 @@ public class OrideImpl implements Orideservice {
                 + String.format("%06d", ThreadLocalRandom.current().nextInt(1000000));
     }
 
+    /**
+     * 创建订单
+     * 事务说明：
+     * 1. @GlobalTransactional 开启 Seata 全局事务（seata.enabled=true 时生效）：
+     *    XID 随 Feign 请求自动传播到商品服务，扣库存分支与订单分支要么一起提交、要么一起回滚；
+     * 2. @Transactional 保留本地事务兜底：未部署 seata-server（enabled=false）时，
+     *    仍保证订单主表与订单明细的本地原子性。
+     */
+    @GlobalTransactional(rollbackFor = Exception.class, name = "createOrder")
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public OrderPOJO createOrder(OrderPOJO order) {
         // 1. 远程调用用户服务，校验用户是否存在
@@ -257,6 +269,10 @@ public class OrideImpl implements Orideservice {
         return orderMapper.updateStatus(orderId, 4) > 0;
     }
 
+    /**
+     * 支付成功：更新订单状态 + 写入支付记录，两步写必须同事务，避免订单已改态但支付记录丢失
+     */
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public boolean payOrder(Long orderId, int payMethod, String tradeNo) {
         OrderPOJO order = orderMapper.findById(orderId);
@@ -277,6 +293,10 @@ public class OrideImpl implements Orideservice {
         return true;
     }
 
+    /**
+     * 发货：更新订单状态 + 写入物流记录，两步写必须同事务
+     */
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public boolean shipOrder(Long orderId, String logisticsNo, String company) {
         OrderPOJO order = orderMapper.findById(orderId);
@@ -296,6 +316,10 @@ public class OrideImpl implements Orideservice {
         return true;
     }
 
+    /**
+     * 确认收货：订单状态置完成 + 物流状态置签收，两步更新必须同事务
+     */
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public boolean receiveOrder(Long orderId) {
         OrderPOJO order = orderMapper.findById(orderId);
