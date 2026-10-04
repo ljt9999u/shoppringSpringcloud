@@ -70,6 +70,10 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<!-- 限制各微服务 JVM 堆内存，避免单实例占用过大导致宿主机 OOM -->
+					<jvmArguments>-Xms256m -Xmx512m</jvmArguments>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

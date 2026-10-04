@@ -26,9 +26,12 @@ import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -237,10 +240,8 @@ public class OrideImpl implements Orideservice {
         int offset = (p[0] - 1) * p[1];
         long total = orderMapper.countByUserId(userId);
         List<OrderPOJO> list = orderMapper.findPageByUserId(userId, offset, p[1]);
-        // 查询每个订单的详情
-        for (OrderPOJO order : list) {
-            order.setDetailList(orderMapper.findDetailByOrderId(order.getId()));
-        }
+        // 批量查询订单详情（消除 N+1）
+        enrichOrderDetails(list);
         return new PageResult<>(total, p[0], p[1], list);
     }
 
@@ -250,10 +251,32 @@ public class OrideImpl implements Orideservice {
         int offset = (p[0] - 1) * p[1];
         long total = orderMapper.countByMerchantId(merchantId);
         List<OrderPOJO> list = orderMapper.findPageByMerchantId(merchantId, offset, p[1]);
-        for (OrderPOJO order : list) {
-            order.setDetailList(orderMapper.findDetailByOrderId(order.getId()));
-        }
+        // 批量查询订单详情（消除 N+1）
+        enrichOrderDetails(list);
         return new PageResult<>(total, p[0], p[1], list);
+    }
+
+    /**
+     * 批量回填订单详情：一次 SQL 查出所有订单的详情，按 orderId 分组后设置回每个订单。
+     * 替代原来循环调用 findDetailByOrderId 的 N+1 写法，减少 DB 往返与临时对象创建。
+     */
+    private void enrichOrderDetails(List<OrderPOJO> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return;
+        }
+        List<Long> orderIds = orders.stream().map(OrderPOJO::getId).collect(Collectors.toList());
+        List<OrderDetail> allDetails = orderMapper.findDetailByOrderIds(orderIds);
+        if (allDetails == null || allDetails.isEmpty()) {
+            for (OrderPOJO order : orders) {
+                order.setDetailList(new ArrayList<>());
+            }
+            return;
+        }
+        Map<Long, List<OrderDetail>> grouped = allDetails.stream()
+                .collect(Collectors.groupingBy(OrderDetail::getOrderId));
+        for (OrderPOJO order : orders) {
+            order.setDetailList(grouped.getOrDefault(order.getId(), new ArrayList<>()));
+        }
     }
 
     @Override

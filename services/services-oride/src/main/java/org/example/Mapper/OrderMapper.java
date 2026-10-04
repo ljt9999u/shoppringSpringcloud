@@ -123,6 +123,17 @@ public interface OrderMapper {
     @Select("SELECT * FROM order_detail WHERE order_id = #{orderId}")
     List<OrderDetail> findDetailByOrderId(Long orderId);
 
+    /**
+     * 批量查询多个订单的详情（消除 N+1）
+     */
+    @Select("<script>" +
+            "SELECT * FROM order_detail WHERE order_id IN " +
+            "<foreach collection='orderIds' item='id' open='(' separator=',' close=')'>" +
+            "#{id}" +
+            "</foreach>" +
+            "</script>")
+    List<OrderDetail> findDetailByOrderIds(@Param("orderIds") List<Long> orderIds);
+
     // ========== 支付 ==========
 
     /**

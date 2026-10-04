@@ -19,14 +19,18 @@ public interface ProductMapper {
 
     /**
      * 查询所有上架商品
+     * 限制最多 100 条，防止商品数据量过大时一次性加载导致 OOM；
+     * 全量遍历请使用分页接口 findPageOnShelf
      */
-    @Select("select * from product where status = 1 order by create_time desc")
+    @Select("select * from product where status = 1 order by create_time desc limit 100")
     List<Product> findAllOnShelf();
 
     /**
      * 根据商品名称模糊查询
+     * 限制最多 100 条，防止热门关键词命中过多商品导致 OOM；
+     * 大量结果请使用分页接口 searchPageByName
      */
-    @Select("select * from product where name like concat('%', #{keyword}, '%') and status = 1")
+    @Select("select * from product where name like concat('%', #{keyword}, '%') and status = 1 limit 100")
     List<Product> searchByName(String keyword);
 
     // ========== 分页查询 ==========
@@ -69,8 +73,10 @@ public interface ProductMapper {
 
     /**
      * 根据分类查询商品
+     * 限制最多 100 条，防止大分类下商品过多导致 OOM；
+     * 大量结果请使用分页接口 findPageByCategory
      */
-    @Select("select * from product where category_id = #{categoryId} and status = 1")
+    @Select("select * from product where category_id = #{categoryId} and status = 1 limit 100")
     List<Product> findByCategory(Long categoryId);
 
     /**

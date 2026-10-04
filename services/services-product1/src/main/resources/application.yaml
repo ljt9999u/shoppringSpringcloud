@@ -50,7 +50,12 @@ feign:
 mybatis:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# 日志配置：MyBatis SQL 日志设为 WARN，避免高并发下打印大量 SQL/结果集造成内存与性能压力
+logging:
+  level:
+    org.example.Mapper: WARN
 
 # ========== Seata 分布式事务（AT 模式，RM 角色：扣库存分支） ==========
 # enabled=false：未部署 seata-server 时关闭，不影响服务启动与现有流程；

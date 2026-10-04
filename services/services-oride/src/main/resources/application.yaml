@@ -52,7 +52,7 @@ feign:
 mybatis:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
 
 #oride:
 #  timeout: 300000
@@ -80,6 +80,8 @@ logging:
   level:
     org.example.Feign.GaoDefeign: DEBUG
     feign: DEBUG
+    # MyBatis SQL 日志设为 WARN，避免高并发下打印大量 SQL/结果集造成内存与性能压力
+    org.example.Mapper: WARN
 
 server:
   port: 8004
