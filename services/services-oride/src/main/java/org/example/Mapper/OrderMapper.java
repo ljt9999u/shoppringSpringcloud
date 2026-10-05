@@ -53,10 +53,33 @@ public interface OrderMapper {
     List<OrderPOJO> findPageByUserId(@Param("userId") Long userId, @Param("offset") int offset, @Param("pageSize") int pageSize);
 
     /**
+     * 查询用户订单（按状态过滤）
+     */
+    @Select("<script>" +
+            "SELECT * FROM orders WHERE user_id = #{userId} " +
+            "<if test='status != null'> AND status = #{status}</if>" +
+            " ORDER BY create_time DESC LIMIT #{offset}, #{pageSize}" +
+            "</script>")
+    List<OrderPOJO> findPageByUserIdStatus(@Param("userId") Long userId,
+                                           @Param("status") Integer status,
+                                           @Param("offset") int offset,
+                                           @Param("pageSize") int pageSize);
+
+    /**
      * 统计用户订单数
      */
     @Select("SELECT COUNT(*) FROM orders WHERE user_id = #{userId}")
     long countByUserId(Long userId);
+
+    /**
+     * 统计用户订单数（按状态过滤）
+     */
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM orders WHERE user_id = #{userId} " +
+            "<if test='status != null'> AND status = #{status}</if>" +
+            "</script>")
+    long countByUserIdStatus(@Param("userId") Long userId,
+                             @Param("status") Integer status);
 
     /**
      * 查询商家订单
@@ -65,10 +88,62 @@ public interface OrderMapper {
     List<OrderPOJO> findPageByMerchantId(@Param("merchantId") Long merchantId, @Param("offset") int offset, @Param("pageSize") int pageSize);
 
     /**
+     * 查询商家订单（按状态过滤）
+     */
+    @Select("<script>" +
+            "SELECT * FROM orders WHERE merchant_id = #{merchantId} " +
+            "<if test='status != null'> AND status = #{status}</if>" +
+            " ORDER BY create_time DESC LIMIT #{offset}, #{pageSize}" +
+            "</script>")
+    List<OrderPOJO> findPageByMerchantIdStatus(@Param("merchantId") Long merchantId,
+                                               @Param("status") Integer status,
+                                               @Param("offset") int offset,
+                                               @Param("pageSize") int pageSize);
+
+    /**
      * 统计商家订单数
      */
     @Select("SELECT COUNT(*) FROM orders WHERE merchant_id = #{merchantId}")
     long countByMerchantId(Long merchantId);
+
+    /**
+     * 统计商家订单数（按状态过滤）
+     */
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM orders WHERE merchant_id = #{merchantId} " +
+            "<if test='status != null'> AND status = #{status}</if>" +
+            "</script>")
+    long countByMerchantIdStatus(@Param("merchantId") Long merchantId,
+                                 @Param("status") Integer status);
+
+    /**
+     * 管理员：分页查询全部订单（可按商家 / 状态过滤）
+     */
+    @Select("<script>" +
+            "SELECT * FROM orders " +
+            "<where>" +
+            "<if test='merchantId != null'> AND merchant_id = #{merchantId}</if>" +
+            "<if test='status != null'> AND status = #{status}</if>" +
+            "</where>" +
+            " ORDER BY create_time DESC LIMIT #{offset}, #{pageSize}" +
+            "</script>")
+    List<OrderPOJO> findPageAll(@Param("merchantId") Long merchantId,
+                                @Param("status") Integer status,
+                                @Param("offset") int offset,
+                                @Param("pageSize") int pageSize);
+
+    /**
+     * 管理员：按过滤条件统计订单数
+     */
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM orders " +
+            "<where>" +
+            "<if test='merchantId != null'> AND merchant_id = #{merchantId}</if>" +
+            "<if test='status != null'> AND status = #{status}</if>" +
+            "</where>" +
+            "</script>")
+    long countAllFiltered(@Param("merchantId") Long merchantId,
+                          @Param("status") Integer status);
 
     /**
      * 更新订单状态
@@ -149,6 +224,17 @@ public interface OrderMapper {
      */
     @Select("SELECT * FROM payment WHERE order_no = #{orderNo}")
     Payment findPaymentByOrderNo(String orderNo);
+
+    /**
+     * 批量查询多个订单号的支付记录（列表回填支付方式，消除 N+1）
+     */
+    @Select("<script>" +
+            "SELECT * FROM payment WHERE order_no IN " +
+            "<foreach collection='orderNos' item='no' open='(' separator=',' close=')'>" +
+            "#{no}" +
+            "</foreach>" +
+            "</script>")
+    List<Payment> findPaymentByOrderNos(@Param("orderNos") List<String> orderNos);
 
     /**
      * 更新支付状态

@@ -578,6 +578,112 @@ GET /api/product/health
 | DELETE | /api/product/spec/{id} | 删除规格 |
 | POST | /api/product/spec/reduceStock?id=&quantity= | 扣减规格库存（防超卖） |
 
+### 17. 商品评价（/api/product/comment）
+
+> 对应 `product_comment` 表（购买后评价，商家可回复）。GET 接口走网关浏览白名单（`/api/product/` 前缀）免登录；发表评价/商家回复需登录。评价列表通过 LEFT JOIN `user` 表带出用户名、昵称、头像，前端无需再单独查询用户信息。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/product/comment/list/{productId}?pageNum=&pageSize= | 分页查询商品评价（默认 pageSize=5，按时间倒序） |
+| GET | /api/product/comment/summary/{productId} | 评价汇总：平均分、总数、好评率、星级分布、带图数 |
+| POST | /api/product/comment/add | 发表评价（需登录，X-User-Id 由网关注入） |
+| PUT | /api/product/comment/reply?id=&merchantReply= | 商家回复评价（需登录） |
+
+**17.1 分页查询商品评价**
+
+```
+GET /api/product/comment/list/1?pageNum=1&pageSize=5
+```
+
+响应：`Result<PageResult<ProductCommentVO>>`，`list` 元素结构：
+
+```json
+{
+  "id": 1,
+  "productId": 1,
+  "userId": 1,
+  "orderId": 1,
+  "star": 5,
+  "content": "手感很棒，钛金属机身很轻薄……",
+  "commentImg": null,
+  "merchantReply": "感谢您的好评！祝您使用愉快~",
+  "status": 1,
+  "createTime": "2026-10-05T10:00:00",
+  "updateTime": "2026-10-05T10:00:00",
+  "username": "zhangsan",
+  "nickname": "张三",
+  "avatar": null
+}
+```
+
+- 仅返回 `status = 1`（展示中）的评价
+- `commentImg`：多张图片 URL 以英文逗号分隔，无图为 `null`
+- `nickname` 为空时前端展示 `username`
+
+**17.2 评价汇总**
+
+```
+GET /api/product/comment/summary/1
+```
+
+响应 `data` 结构：
+
+```json
+{
+  "totalCount": 5,
+  "avgStar": 4.4,
+  "goodCount": 4,
+  "goodRate": 80.0,
+  "imgCount": 0,
+  "distribution": [
+    { "star": 5, "count": 3 },
+    { "star": 4, "count": 1 },
+    { "star": 3, "count": 1 },
+    { "star": 2, "count": 0 },
+    { "star": 1, "count": 0 }
+  ]
+}
+```
+
+- `avgStar`：平均分，保留 1 位小数；无评价时为 0
+- `goodCount`/`goodRate`：4~5 星数量与好评率（百分比，保留 1 位小数）
+- `distribution`：固定返回 5~1 星，无数据补 0
+
+**17.3 发表评价**
+
+```
+POST /api/product/comment/add
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "productId": 1,
+  "orderId": 1,
+  "star": 5,
+  "content": "商品很好用",
+  "commentImg": "https://xxx/1.jpg,https://xxx/2.jpg"
+}
+```
+
+业务规则（不满足返回 `code=500` 与中文 message）：
+
+- `star` 必须为 1~5；`content` 不能为空
+- 必须已购买该商品：关联订单属于当前用户、订单详情含该商品、订单状态为 1待发货/2待收货/3已完成（即已支付）
+- 同一订单的同一商品只能评价一次
+- `userId` 取自网关注入的 `X-User-Id` 请求头，忽略 Body 中的 userId
+
+**17.4 商家回复**
+
+```
+PUT /api/product/comment/reply?id=1&merchantReply=感谢支持
+Authorization: Bearer <token>
+```
+
+| 参数 | 位置 | 类型 | 说明 |
+|------|------|------|------|
+| id | query | Long | 评价 ID |
+| merchantReply | query | String | 回复内容（不能为空） |
+
 ---
 
 ## 四、订单服务 services-oride
@@ -932,3 +1038,10 @@ GET /api/cart/health
 - **数据库**：MySQL（shopping 库）
 - **ORM**：MyBatis
 - **鉴权**：JWT（用户服务生成 token）
+
+
+
+HTTP 层（新接口）
+
+- `GET /api/oride/order/all` （管理员全量）✅ 返回 2 笔订单，含买家名、商品明细、金额、状态
+- `GET /api/oride/order/merchant/1` （商家）✅ 返回本店订单，支持`status` 筛选

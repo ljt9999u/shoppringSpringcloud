@@ -2,6 +2,7 @@ package org.example.Feign.Fllback;
 
 import org.example.Feign.ProductFeign;
 import org.example.Product.Product;
+import org.example.common.Result;
 import org.springframework.stereotype.Component;
 
 /**
@@ -11,17 +12,12 @@ import org.springframework.stereotype.Component;
 public class ProductFllback implements ProductFeign {
 
     @Override
-    public Product getProductById(Long id) {
-        Product product = new Product();
-        product.setId(id);
-        product.setName("【商品服务不可用】");
-        product.setPrice(java.math.BigDecimal.ZERO);
-        product.setStock(0);
-        return product;
+    public Result<Product> getProductById(Long id) {
+        return Result.fail("商品服务暂时不可用");
     }
 
     @Override
-    public boolean reduceStock(Long id, int quantity) {
-        return false;
+    public Result<Boolean> reduceStock(Long id, int quantity) {
+        return Result.fail("商品服务暂时不可用");
     }
 }

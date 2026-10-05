@@ -28,8 +28,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -57,7 +60,11 @@ public class OrideImpl implements Orideservice {
     @SentinelResource(value = "createOride", blockHandler = "createOrideFllback")
     @Override
     public OridePOJO createOride(Long productId, Long userId) {
-        Product product = productFeign.getProductById(productId);
+        Result<Product> productResult = productFeign.getProductById(productId);
+        if (productResult.getCode() != 200 || productResult.getData() == null) {
+            throw new RuntimeException(productResult.getMessage());
+        }
+        Product product = productResult.getData();
         OridePOJO oridePOJO = new OridePOJO();
         oridePOJO.setId(productId);
         oridePOJO.setTotalAmount(product.getPrice().multiply(new BigDecimal(product.getStock())));
@@ -82,11 +89,7 @@ public class OrideImpl implements Orideservice {
     @Override
     public Product getProductFromRemote(Long productId) {
         // 直接写服务名，不需要DiscoveryClient
-        Product product=productFeign.getProductById(productId);
-        return product;
-//        String url = "http://services-product1/product/" + productId;
-//        log.info("远程调用商品服务，url:{}", url);
-//        return restemplate.getForObject(url, Product.class);
+        return productFeign.getProductById(productId).getData();
     }
 
     @Override
@@ -134,16 +137,21 @@ public class OrideImpl implements Orideservice {
             BigDecimal totalAmount = BigDecimal.ZERO;
             for (OrderDetail detail : details) {
                 // 远程查询商品信息
-                Product product = productFeign.getProductById(detail.getProductId());
-                if (product == null || product.getId() == null) {
-                    throw new RuntimeException("商品ID=" + detail.getProductId() + " 不存在");
+                Result<Product> productResult = productFeign.getProductById(detail.getProductId());
+                if (productResult.getCode() != 200 || productResult.getData() == null) {
+                    throw new RuntimeException(
+                            "商品ID=" + detail.getProductId() + " 不存在或商品服务不可用：" + productResult.getMessage());
                 }
+                Product product = productResult.getData();
                 // 校验库存
                 if (product.getStock() < detail.getQuantity()) {
                     throw new RuntimeException("商品【" + product.getName() + "】库存不足");
                 }
                 // 远程调用商品服务扣减库存
-                boolean reduceSuccess = productFeign.reduceStock(detail.getProductId(), detail.getQuantity());
+                Result<Boolean> reduceResult =
+                        productFeign.reduceStock(detail.getProductId(), detail.getQuantity());
+                boolean reduceSuccess =
+                        reduceResult.getCode() == 200 && Boolean.TRUE.equals(reduceResult.getData());
                 if (!reduceSuccess) {
                     throw new RuntimeException("商品【" + product.getName() + "】扣减库存失败");
                 }
@@ -157,9 +165,10 @@ public class OrideImpl implements Orideservice {
             order.setTotalAmount(totalAmount);
             if (order.getMerchantId() == null && !details.isEmpty()) {
                 // 通过商品获取商家ID（这里假设所有商品都是同一个商家）
-                Product firstProduct = productFeign.getProductById(details.get(0).getProductId());
-                if (firstProduct != null) {
-                    order.setMerchantId(firstProduct.getMerchantId());
+                Result<Product> firstResult =
+                        productFeign.getProductById(details.get(0).getProductId());
+                if (firstResult.getCode() == 200 && firstResult.getData() != null) {
+                    order.setMerchantId(firstResult.getData().getMerchantId());
                 }
             }
         }
@@ -235,24 +244,40 @@ public class OrideImpl implements Orideservice {
     }
 
     @Override
-    public PageResult<OrderPOJO> getUserOrdersPage(Long userId, int pageNum, int pageSize) {
+    public PageResult<OrderPOJO> getUserOrdersPage(Long userId, Integer status, int pageNum, int pageSize) {
         int[] p = normalizePage(pageNum, pageSize);
         int offset = (p[0] - 1) * p[1];
-        long total = orderMapper.countByUserId(userId);
-        List<OrderPOJO> list = orderMapper.findPageByUserId(userId, offset, p[1]);
-        // 批量查询订单详情（消除 N+1）
+        long total = orderMapper.countByUserIdStatus(userId, status);
+        List<OrderPOJO> list = orderMapper.findPageByUserIdStatus(userId, status, offset, p[1]);
+        // 批量查询订单详情（消除 N+1）+ 回填支付方式（用户端支付记录展示）
         enrichOrderDetails(list);
+        enrichPayMethods(list);
         return new PageResult<>(total, p[0], p[1], list);
     }
 
     @Override
-    public PageResult<OrderPOJO> getMerchantOrdersPage(Long merchantId, int pageNum, int pageSize) {
+    public PageResult<OrderPOJO> getMerchantOrdersPage(Long merchantId, Integer status, int pageNum, int pageSize) {
         int[] p = normalizePage(pageNum, pageSize);
         int offset = (p[0] - 1) * p[1];
-        long total = orderMapper.countByMerchantId(merchantId);
-        List<OrderPOJO> list = orderMapper.findPageByMerchantId(merchantId, offset, p[1]);
-        // 批量查询订单详情（消除 N+1）
+        long total = orderMapper.countByMerchantIdStatus(merchantId, status);
+        List<OrderPOJO> list = orderMapper.findPageByMerchantIdStatus(merchantId, status, offset, p[1]);
+        // 批量回填：商品详情 + 买家用户名 + 支付方式
         enrichOrderDetails(list);
+        enrichOrderUsers(list);
+        enrichPayMethods(list);
+        return new PageResult<>(total, p[0], p[1], list);
+    }
+
+    @Override
+    public PageResult<OrderPOJO> getAllOrdersPage(Long merchantId, Integer status, int pageNum, int pageSize) {
+        int[] p = normalizePage(pageNum, pageSize);
+        int offset = (p[0] - 1) * p[1];
+        long total = orderMapper.countAllFiltered(merchantId, status);
+        List<OrderPOJO> list = orderMapper.findPageAll(merchantId, status, offset, p[1]);
+        // 批量回填：商品详情 + 买家用户名 + 支付方式
+        enrichOrderDetails(list);
+        enrichOrderUsers(list);
+        enrichPayMethods(list);
         return new PageResult<>(total, p[0], p[1], list);
     }
 
@@ -276,6 +301,62 @@ public class OrideImpl implements Orideservice {
                 .collect(Collectors.groupingBy(OrderDetail::getOrderId));
         for (OrderPOJO order : orders) {
             order.setDetailList(grouped.getOrDefault(order.getId(), new ArrayList<>()));
+        }
+    }
+
+    /**
+     * 批量回填买家用户名：按去重后的 userId 逐个查询（一页最多 pageSize 个不同买家）。
+     * 用户服务暂无批量接口，失败时保留 null，不影响订单列表展示。
+     */
+    private void enrichOrderUsers(List<OrderPOJO> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return;
+        }
+        Set<Long> userIds = orders.stream()
+                .map(OrderPOJO::getUserId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toCollection(HashSet::new));
+        Map<Long, String> nameMap = new HashMap<>();
+        for (Long uid : userIds) {
+            try {
+                Result<UserPOJO> userResult = userFeign.getUserById(uid);
+                if (userResult.getCode() == 200 && userResult.getData() != null) {
+                    nameMap.put(uid, userResult.getData().getUsername());
+                }
+            } catch (Exception e) {
+                log.warn("批量回填用户名失败，userId={}", uid);
+            }
+        }
+        for (OrderPOJO order : orders) {
+            order.setUsername(nameMap.get(order.getUserId()));
+        }
+    }
+
+    /**
+     * 批量回填支付方式：一次 SQL 按订单号查出支付记录，回填 payMethod。
+     */
+    private void enrichPayMethods(List<OrderPOJO> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return;
+        }
+        List<String> orderNos = orders.stream()
+                .map(OrderPOJO::getOrderNo)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
+        if (orderNos.isEmpty()) {
+            return;
+        }
+        List<Payment> payments = orderMapper.findPaymentByOrderNos(orderNos);
+        if (payments == null || payments.isEmpty()) {
+            return;
+        }
+        Map<String, Payment> paymentMap = payments.stream()
+                .collect(Collectors.toMap(Payment::getOrderNo, p -> p, (a, b) -> a));
+        for (OrderPOJO order : orders) {
+            Payment payment = paymentMap.get(order.getOrderNo());
+            if (payment != null) {
+                order.setPayMethod(payment.getPayMethod());
+            }
         }
     }
 

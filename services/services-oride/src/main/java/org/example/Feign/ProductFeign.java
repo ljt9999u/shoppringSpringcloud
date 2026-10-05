@@ -2,6 +2,7 @@ package org.example.Feign;
 
 import org.example.Feign.Fllback.ProductFllback;
 import org.example.Product.Product;
+import org.example.common.Result;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,7 +22,7 @@ public interface ProductFeign {
      * 远程路径：GET /api/product/{id}
      */
     @GetMapping("/api/product/{id}")
-    Product getProductById(@PathVariable("id") Long id);
+    Result<Product> getProductById(@PathVariable("id") Long id);
 
     /**
      * 扣减库存（下单时扣减商品库存）
@@ -29,5 +30,5 @@ public interface ProductFeign {
      * 远程路径：POST /api/product/reduceStock?id=&quantity=
      */
     @PostMapping("/api/product/reduceStock")
-    boolean reduceStock(@RequestParam("id") Long id, @RequestParam("quantity") int quantity);
+    Result<Boolean> reduceStock(@RequestParam("id") Long id, @RequestParam("quantity") int quantity);
 }

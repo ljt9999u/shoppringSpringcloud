@@ -29,4 +29,5 @@ public class OrderPOJO {
     // 关联数据
     private List<OrderDetail> detailList;  // 订单详情
     private String username;              // 用户名（跨服务查询）
+    private Integer payMethod;            // 支付方式 1微信 2支付宝 3余额（从 payment 表回填）
 }

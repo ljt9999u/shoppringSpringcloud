@@ -38,14 +38,19 @@ public interface Orideservice {
     OrderPOJO getOrderByOrderNo(String orderNo);
 
     /**
-     * 分页查询用户订单
+     * 分页查询用户订单（status 为 null 时查全部状态）
      */
-    PageResult<OrderPOJO> getUserOrdersPage(Long userId, int pageNum, int pageSize);
+    PageResult<OrderPOJO> getUserOrdersPage(Long userId, Integer status, int pageNum, int pageSize);
 
     /**
-     * 分页查询商家订单
+     * 分页查询商家订单（status 为 null 时查全部状态）
      */
-    PageResult<OrderPOJO> getMerchantOrdersPage(Long merchantId, int pageNum, int pageSize);
+    PageResult<OrderPOJO> getMerchantOrdersPage(Long merchantId, Integer status, int pageNum, int pageSize);
+
+    /**
+     * 管理员：分页查询全部订单（可按商家 / 状态过滤）
+     */
+    PageResult<OrderPOJO> getAllOrdersPage(Long merchantId, Integer status, int pageNum, int pageSize);
 
     /**
      * 取消订单

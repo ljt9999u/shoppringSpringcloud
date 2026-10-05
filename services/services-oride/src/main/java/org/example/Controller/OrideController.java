@@ -148,27 +148,46 @@ public class OrideController {
 
     /**
      * 分页查询用户订单
-     * GET /api/oride/order/user/{userId}?pageNum=1&pageSize=10
+     * GET /api/oride/order/user/{userId}?pageNum=1&pageSize=10&status=1
+     * status 不传时查全部状态
      */
     @GetMapping("/order/user/{userId}")
     public Result<PageResult<OrderPOJO>> getUserOrders(
             @PathVariable Long userId,
+            @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize) {
-        PageResult<OrderPOJO> page = orideImpl.getUserOrdersPage(userId, pageNum, pageSize);
+        PageResult<OrderPOJO> page = orideImpl.getUserOrdersPage(userId, status, pageNum, pageSize);
         return Result.success(page);
     }
 
     /**
      * 分页查询商家订单
-     * GET /api/oride/order/merchant/{merchantId}?pageNum=1&pageSize=10
+     * GET /api/oride/order/merchant/{merchantId}?pageNum=1&pageSize=10&status=1
+     * status 不传时查全部状态
      */
     @GetMapping("/order/merchant/{merchantId}")
     public Result<PageResult<OrderPOJO>> getMerchantOrders(
             @PathVariable Long merchantId,
+            @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize) {
-        PageResult<OrderPOJO> page = orideImpl.getMerchantOrdersPage(merchantId, pageNum, pageSize);
+        PageResult<OrderPOJO> page = orideImpl.getMerchantOrdersPage(merchantId, status, pageNum, pageSize);
+        return Result.success(page);
+    }
+
+    /**
+     * 管理员：分页查询全部订单/支付记录（可按商家、状态过滤）
+     * GET /api/oride/order/all?pageNum=1&pageSize=10&merchantId=1&status=1
+     * status: 0待付款 1待发货 2待收货 3已完成 4已取消 5已退款
+     */
+    @GetMapping("/order/all")
+    public Result<PageResult<OrderPOJO>> getAllOrders(
+            @RequestParam(required = false) Long merchantId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        PageResult<OrderPOJO> page = orideImpl.getAllOrdersPage(merchantId, status, pageNum, pageSize);
         return Result.success(page);
     }
 
