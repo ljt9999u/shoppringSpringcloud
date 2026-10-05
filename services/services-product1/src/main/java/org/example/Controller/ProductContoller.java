@@ -78,6 +78,19 @@ public class ProductContoller {
     }
 
     /**
+     * 按商家分页查询商品（商家后台商品管理，含下架/待审核）
+     * GET /api/product/merchant/{merchantId}?status=1&pageNum=1&pageSize=10
+     */
+    @GetMapping("/merchant/{merchantId}")
+    public Result<PageResult<Product>> pageByMerchant(
+            @PathVariable Long merchantId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(productService.listPageByMerchant(merchantId, status, pageNum, pageSize));
+    }
+
+    /**
      * 新增商品
      * POST /api/product/add
      */
@@ -114,6 +127,40 @@ public class ProductContoller {
             return Result.fail("下架商品失败");
         }
         return Result.success();
+    }
+
+    // ========== 管理员后台：商品审核 ==========
+
+    /**
+     * 分页查询待审核商品
+     * GET /api/product/audit/list?pageNum=1&pageSize=10
+     */
+    @GetMapping("/audit/list")
+    public Result<PageResult<Product>> auditList(
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(productService.listPageAudit(pageNum, pageSize));
+    }
+
+    /**
+     * 审核商品
+     * PUT /api/product/audit?id=1&status=1  （status=1 通过上架；status=0 拒绝下架，需传 rejectReason）
+     */
+    @PutMapping("/audit")
+    public Result audit(@RequestParam Long id,
+                        @RequestParam int status,
+                        @RequestParam(required = false) String rejectReason) {
+        if (status != 1 && status != 0) {
+            return Result.fail("审核状态非法");
+        }
+        if (status == 0 && (rejectReason == null || rejectReason.trim().isEmpty())) {
+            return Result.fail("审核拒绝请填写拒绝原因");
+        }
+        boolean ok = productService.audit(id, status, rejectReason);
+        if (!ok) {
+            return Result.fail("审核失败");
+        }
+        return Result.success(status == 1 ? "审核通过，商品已上架" : "审核拒绝，商品已下架");
     }
 
     /**

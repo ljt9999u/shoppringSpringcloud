@@ -44,6 +44,21 @@ public interface ProductService {
      */
     PageResult<Product> listPageByCategory(Long categoryId, int pageNum, int pageSize);
 
+    /**
+     * 按商家分页查询商品（含下架/待审核，商家商品管理用；status 为 null 查全部）
+     */
+    PageResult<Product> listPageByMerchant(Long merchantId, Integer status, int pageNum, int pageSize);
+
+    /**
+     * 分页查询待审核商品（管理员后台）
+     */
+    PageResult<Product> listPageAudit(int pageNum, int pageSize);
+
+    /**
+     * 审核商品：status=1 通过（上架），status=0 拒绝（下架，写入拒绝原因）
+     */
+    boolean audit(Long id, int status, String rejectReason);
+
     // ========== 增删改 ==========
 
     /**

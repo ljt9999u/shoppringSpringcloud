@@ -96,13 +96,44 @@ public class ProductServiceImpl implements ProductService {
         return new PageResult<>(total, p[0], p[1], list);
     }
 
+    @Override
+    public PageResult<Product> listPageByMerchant(Long merchantId, Integer status, int pageNum, int pageSize) {
+        int[] p = normalizePage(pageNum, pageSize);
+        int offset = (p[0] - 1) * p[1];
+        long total = productMapper.countByMerchant(merchantId, status);
+        List<Product> list = productMapper.findPageByMerchant(merchantId, status, offset, p[1]);
+        return new PageResult<>(total, p[0], p[1], list);
+    }
+
+    @Override
+    public PageResult<Product> listPageAudit(int pageNum, int pageSize) {
+        int[] p = normalizePage(pageNum, pageSize);
+        int offset = (p[0] - 1) * p[1];
+        long total = productMapper.countAudit();
+        List<Product> list = productMapper.findPageAudit(offset, p[1]);
+        return new PageResult<>(total, p[0], p[1], list);
+    }
+
+    @Override
+    public boolean audit(Long id, int status, String rejectReason) {
+        // 仅允许审核通过(1)或拒绝(0)
+        if (status != 1 && status != 0) {
+            return false;
+        }
+        int rows = productMapper.updateAuditStatus(id, status, rejectReason);
+        if (rows > 0) {
+            cacheService.evict(CacheKeys.productDetail(id));
+        }
+        return rows > 0;
+    }
+
     // ========== 增删改 ==========
 
     @Override
     public int addProduct(Product product) {
-        if (product.getStatus() == null) {
-            product.setStatus(1);
-        }
+        // 商家发布的商品统一进入待审核状态，由管理员审核通过后才上架
+        product.setStatus(2);
+        product.setRejectReason(null);
         return productMapper.insert(product);
     }
 

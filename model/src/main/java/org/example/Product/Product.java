@@ -22,7 +22,8 @@ public class Product {
     private BigDecimal originalPrice; // 原价
     private Integer stock;           // 库存
     private Integer sales;           // 销量
-    private Integer status;          // 状态: 0下架 1上架 2待审核
+    private Integer status;          // 状态: 0下架/审核拒绝 1上架(审核通过) 2待审核
+    private String rejectReason;     // 审核拒绝原因
     private Date createTime;         // 创建时间
     private Date updateTime;         // 更新时间
 }

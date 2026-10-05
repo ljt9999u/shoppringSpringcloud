@@ -99,7 +99,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         }
         // GET 浏览类接口：商品、分类、品牌、商家店铺、商品评价
         if (method == HttpMethod.GET) {
-            if (path.startsWith("/api/product/")) {
+            if (path.startsWith("/api/product/") && !path.startsWith("/api/product/audit/")) {
                 return true;
             }
             if (path.startsWith("/api/category")) {

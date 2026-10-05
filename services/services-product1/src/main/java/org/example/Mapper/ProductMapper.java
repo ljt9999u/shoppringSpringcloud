@@ -83,9 +83,9 @@ public interface ProductMapper {
      * 新增商品
      */
     @Insert("insert into product (merchant_id, category_id, brand_id, name, subtitle, main_image, detail, " +
-            "price, original_price, stock, sales, status) " +
+            "price, original_price, stock, sales, status, reject_reason) " +
             "values (#{merchantId}, #{categoryId}, #{brandId}, #{name}, #{subtitle}, #{mainImage}, #{detail}, " +
-            "#{price}, #{originalPrice}, #{stock}, 0, #{status})")
+            "#{price}, #{originalPrice}, #{stock}, 0, #{status}, #{rejectReason})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Product product);
 
@@ -94,7 +94,8 @@ public interface ProductMapper {
      */
     @Update("update product set merchant_id = #{merchantId}, category_id = #{categoryId}, brand_id = #{brandId}, " +
             "name = #{name}, subtitle = #{subtitle}, main_image = #{mainImage}, detail = #{detail}, " +
-            "price = #{price}, original_price = #{originalPrice}, stock = #{stock}, status = #{status} " +
+            "price = #{price}, original_price = #{originalPrice}, stock = #{stock}, status = #{status}, " +
+            "reject_reason = #{rejectReason} " +
             "where id = #{id}")
     int update(Product product);
 
@@ -109,4 +110,57 @@ public interface ProductMapper {
      */
     @Update("update product set stock = stock - #{quantity} where id = #{id} and stock >= #{quantity}")
     int reduceStock(@Param("id") Long id, @Param("quantity") int quantity);
+
+    // ========== 商家后台 ==========
+
+    /**
+     * 按商家分页查询商品（含下架/待审核，商家商品管理用）
+     */
+    @Select("<script>" +
+            "select * from product where merchant_id = #{merchantId} " +
+            "<if test='status != null'>and status = #{status} </if>" +
+            "order by create_time desc limit #{offset}, #{pageSize}" +
+            "</script>")
+    List<Product> findPageByMerchant(@Param("merchantId") Long merchantId,
+                                     @Param("status") Integer status,
+                                     @Param("offset") int offset,
+                                     @Param("pageSize") int pageSize);
+
+    /**
+     * 按商家查询商品总数
+     */
+    @Select("<script>" +
+            "select count(*) from product where merchant_id = #{merchantId} " +
+            "<if test='status != null'>and status = #{status} </if>" +
+            "</script>")
+    long countByMerchant(@Param("merchantId") Long merchantId, @Param("status") Integer status);
+
+    // ========== 管理员后台：商品审核 ==========
+
+    /**
+     * 分页查询待审核商品（status = 2）
+     */
+    @Select("select * from product where status = 2 order by create_time asc limit #{offset}, #{pageSize}")
+    List<Product> findPageAudit(@Param("offset") int offset, @Param("pageSize") int pageSize);
+
+    /**
+     * 待审核商品总数
+     */
+    @Select("select count(*) from product where status = 2")
+    long countAudit();
+
+    /**
+     * 审核商品：通过→status=1 并清空拒绝原因；拒绝→status=0 并写入拒绝原因
+     */
+    @Update("<script>" +
+            "update product set status = #{status}, " +
+            "<choose>" +
+            "  <when test='status == 1'>reject_reason = null</when>" +
+            "  <otherwise>reject_reason = #{rejectReason}</otherwise>" +
+            "</choose> " +
+            "where id = #{id}" +
+            "</script>")
+    int updateAuditStatus(@Param("id") Long id,
+                          @Param("status") int status,
+                          @Param("rejectReason") String rejectReason);
 }

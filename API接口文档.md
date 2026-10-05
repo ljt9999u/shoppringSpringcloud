@@ -425,7 +425,25 @@ GET /api/product/category?categoryId=1&pageNum=1&pageSize=10
 
 响应：`Result<PageResult<Product>>`
 
-### 5. 新增商品
+### 5. 按商家分页查询商品（商家后台）
+
+> 商家商品管理专用：返回该商家名下**全部状态**商品（含已下架、待审核），支持按状态过滤。
+> 前端流程：先 `GET /api/merchant/user/{userId}` 用登录账号换 merchantId，再调本接口。
+
+```
+GET /api/product/merchant/{merchantId}?status=1&pageNum=1&pageSize=10
+```
+
+| 参数 | 位置 | 类型 | 说明 |
+|------|------|------|------|
+| merchantId | path | Long | 商家 ID |
+| status | query | Integer | 选填，0下架 1上架 2待审核；不传查全部状态 |
+| pageNum | query | int | 页码 |
+| pageSize | query | int | 每页条数 |
+
+响应：`Result<PageResult<Product>>`
+
+### 6. 新增商品
 
 ```
 POST /api/product/add
@@ -436,7 +454,9 @@ Body (Product)
 
 响应：`Result<Product>`
 
-### 6. 更新商品
+> ⚠️ **审核机制**：商家新增的商品 `status` 会被后端强制置为 **2（待审核）**，不接受前端传入的 status。需经管理员审核通过后 `status` 变为 1（上架），商品才会出现在购物页。
+
+### 7. 更新商品
 
 ```
 PUT /api/product/update
@@ -447,7 +467,9 @@ Body (Product)
 
 响应：`Result`
 
-### 7. 下架商品（逻辑删除）
+> 商家编辑商品后建议将 `status` 置为 2（重新提交审核）。`Product` 实体含 `rejectReason` 字段（审核拒绝原因）。
+
+### 8. 下架商品（逻辑删除）
 
 ```
 DELETE /api/product/{id}
@@ -455,7 +477,7 @@ DELETE /api/product/{id}
 
 响应：`Result`
 
-### 8. 扣减库存
+### 9. 扣减库存
 
 > 供订单服务 Feign 调用。
 
@@ -470,7 +492,7 @@ POST /api/product/reduceStock?id=1&quantity=2
 
 响应：`Result<Boolean>`，库存不足返回失败。
 
-### 9. 商品详情（含商家信息）
+### 10. 商品详情（含商家信息）
 
 > 跨服务调用：商品服务 → 用户服务（Feign）。
 
@@ -487,7 +509,7 @@ GET /api/product/detail/{id}
 }
 ```
 
-### 10. 商品 + 订单数 + 评价数
+### 11. 商品 + 订单数 + 评价数
 
 > 跨服务调用：商品服务 → 订单服务（Feign）。
 
@@ -505,7 +527,7 @@ GET /api/product/withStats/{id}
 }
 ```
 
-### 11. 跨服务连通性测试
+### 12. 跨服务连通性测试
 
 ```
 GET /api/product/crossTest
@@ -513,13 +535,49 @@ GET /api/product/crossTest
 
 返回各服务（product / user / order）的连通状态。响应：`Result<Map<String, String>>`
 
-### 12. 健康检查
+### 13. 健康检查
 
 ```
 GET /api/product/health
 ```
 
-### 13. 商品分类（/api/category）
+### 14. 商品审核（管理员后台）
+
+> 商家发布商品后 `status=2（待审核）`，管理员在此审核。审核通过后商品 `status=1` 自动上架，进入购物页；审核拒绝则 `status=0` 并写入拒绝原因，商家可在商品管理页看到原因并重新提交审核。
+>
+> 网关：`/api/product/audit/**` 不走 GET 白名单，需登录鉴权。
+
+**14.1 分页查询待审核商品**
+
+```
+GET /api/product/audit/list?pageNum=1&pageSize=10
+```
+
+| 参数 | 位置 | 类型 | 说明 |
+|------|------|------|------|
+| pageNum | query | int | 页码 |
+| pageSize | query | int | 每页条数 |
+
+响应：`Result<PageResult<Product>>`（仅 `status=2` 的商品）
+
+**14.2 审核商品**
+
+```
+PUT /api/product/audit?id=1&status=1
+PUT /api/product/audit?id=1&status=0&rejectReason=图片不清晰
+```
+
+| 参数 | 位置 | 类型 | 说明 |
+|------|------|------|------|
+| id | query | Long | 商品 ID |
+| status | query | int | 1=审核通过并上架，0=审核拒绝并下架 |
+| rejectReason | query | String | 拒绝时必填，通过时不传 |
+
+响应：`Result`，消息为「审核通过，商品已上架」或「审核拒绝，商品已下架」。
+
+> 🛡️ 审核通过/拒绝后会清除商品详情缓存 `product:detail:{id}`，避免前端读到旧状态。
+
+### 15. 商品分类（/api/category）
 
 > 独立前缀，网关路由 `/api/category/**` → 商品服务。GET 免登录，增删改需登录。
 >
@@ -537,7 +595,7 @@ GET /api/product/health
 | PUT | /api/category/status/{id}?status= | 修改状态 0禁用 1启用 |
 | DELETE | /api/category/{id} | 删除分类（有子分类时拒绝） |
 
-### 14. 品牌（/api/brand）
+### 16. 品牌（/api/brand）
 
 > 网关路由 `/api/brand/**` → 商品服务。GET 免登录，增删改需登录。
 >
@@ -552,7 +610,7 @@ GET /api/product/health
 | PUT | /api/brand/update | 更新品牌（Body: Brand） |
 | DELETE | /api/brand/{id} | 删除品牌 |
 
-### 15. 商品图片（/api/product/image）
+### 17. 商品图片（/api/product/image）
 
 > 商品详情轮播多图。GET 免登录，增删改需登录。
 
@@ -565,7 +623,7 @@ GET /api/product/health
 | DELETE | /api/product/image/{id} | 删除单张图片 |
 | DELETE | /api/product/image/product/{productId} | 删除商品全部图片 |
 
-### 16. 商品规格（/api/product/spec）
+### 18. 商品规格（/api/product/spec）
 
 > 颜色/尺码等 SKU，含规格库存与加价。GET 免登录，增删改需登录。
 
@@ -578,7 +636,7 @@ GET /api/product/health
 | DELETE | /api/product/spec/{id} | 删除规格 |
 | POST | /api/product/spec/reduceStock?id=&quantity= | 扣减规格库存（防超卖） |
 
-### 17. 商品评价（/api/product/comment）
+### 19. 商品评价（/api/product/comment）
 
 > 对应 `product_comment` 表（购买后评价，商家可回复）。GET 接口走网关浏览白名单（`/api/product/` 前缀）免登录；发表评价/商家回复需登录。评价列表通过 LEFT JOIN `user` 表带出用户名、昵称、头像，前端无需再单独查询用户信息。
 
@@ -589,7 +647,7 @@ GET /api/product/health
 | POST | /api/product/comment/add | 发表评价（需登录，X-User-Id 由网关注入） |
 | PUT | /api/product/comment/reply?id=&merchantReply= | 商家回复评价（需登录） |
 
-**17.1 分页查询商品评价**
+**19.1 分页查询商品评价**
 
 ```
 GET /api/product/comment/list/1?pageNum=1&pageSize=5
@@ -620,7 +678,7 @@ GET /api/product/comment/list/1?pageNum=1&pageSize=5
 - `commentImg`：多张图片 URL 以英文逗号分隔，无图为 `null`
 - `nickname` 为空时前端展示 `username`
 
-**17.2 评价汇总**
+**19.2 评价汇总**
 
 ```
 GET /api/product/comment/summary/1
@@ -649,7 +707,7 @@ GET /api/product/comment/summary/1
 - `goodCount`/`goodRate`：4~5 星数量与好评率（百分比，保留 1 位小数）
 - `distribution`：固定返回 5~1 星，无数据补 0
 
-**17.3 发表评价**
+**19.3 发表评价**
 
 ```
 POST /api/product/comment/add
@@ -672,7 +730,7 @@ Authorization: Bearer <token>
 - 同一订单的同一商品只能评价一次
 - `userId` 取自网关注入的 `X-User-Id` 请求头，忽略 Body 中的 userId
 
-**17.4 商家回复**
+**19.4 商家回复**
 
 ```
 PUT /api/product/comment/reply?id=1&merchantReply=感谢支持
