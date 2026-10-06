@@ -43,6 +43,15 @@ public class ProductCommentServiceImpl implements ProductCommentService {
     }
 
     @Override
+    public PageResult<ProductCommentVO> listPageByMerchant(Long merchantId, int pageNum, int pageSize) {
+        int[] p = normalizePage(pageNum, pageSize);
+        int offset = (p[0] - 1) * p[1];
+        long total = productCommentMapper.countByMerchant(merchantId);
+        List<ProductCommentVO> list = productCommentMapper.findPageByMerchant(merchantId, offset, p[1]);
+        return new PageResult<>(total, p[0], p[1], list);
+    }
+
+    @Override
     public Map<String, Object> summary(Long productId) {
         Map<String, Object> row = productCommentMapper.summaryByProduct(productId);
 

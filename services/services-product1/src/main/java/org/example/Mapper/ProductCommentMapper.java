@@ -33,6 +33,30 @@ public interface ProductCommentMapper {
     long countByProduct(Long productId);
 
     /**
+     * 分页查询某商家旗下所有商品的评价（含隐藏评价，供商家评价管理）
+     * 关联 product 带出商品名称/主图，关联 user 带出评价人信息
+     */
+    @Select("SELECT pc.*, u.username AS username, u.nickname AS nickname, u.avatar AS avatar, " +
+            "p.name AS productName, p.main_image AS productImage " +
+            "FROM product_comment pc " +
+            "JOIN product p ON p.id = pc.product_id " +
+            "LEFT JOIN `user` u ON u.id = pc.user_id " +
+            "WHERE p.merchant_id = #{merchantId} " +
+            "ORDER BY pc.create_time DESC " +
+            "LIMIT #{offset}, #{pageSize}")
+    List<ProductCommentVO> findPageByMerchant(@Param("merchantId") Long merchantId,
+                                              @Param("offset") int offset,
+                                              @Param("pageSize") int pageSize);
+
+    /**
+     * 统计某商家旗下所有商品的评价数（含隐藏）
+     */
+    @Select("SELECT COUNT(*) FROM product_comment pc " +
+            "JOIN product p ON p.id = pc.product_id " +
+            "WHERE p.merchant_id = #{merchantId}")
+    long countByMerchant(Long merchantId);
+
+    /**
      * 评价汇总：总数、平均分、好评数(4~5星)、带图评价数
      */
     @Select("SELECT COUNT(*) AS total, " +

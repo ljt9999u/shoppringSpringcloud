@@ -17,6 +17,11 @@ public interface ProductCommentService {
     PageResult<ProductCommentVO> listPage(Long productId, int pageNum, int pageSize);
 
     /**
+     * 分页查询某商家旗下所有商品的评价（含隐藏，商家评价管理用）
+     */
+    PageResult<ProductCommentVO> listPageByMerchant(Long merchantId, int pageNum, int pageSize);
+
+    /**
      * 商品评价汇总：总数 / 平均分 / 好评数 / 好评率 / 带图数 / 星级分布
      */
     Map<String, Object> summary(Long productId);

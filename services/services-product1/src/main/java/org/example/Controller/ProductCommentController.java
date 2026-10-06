@@ -35,6 +35,18 @@ public class ProductCommentController {
     }
 
     /**
+     * 商家：分页查询本店所有商品的评价（含隐藏评价）
+     * GET /api/product/comment/merchant/{merchantId}?pageNum=1&pageSize=10
+     */
+    @GetMapping("/merchant/{merchantId}")
+    public Result<PageResult<ProductCommentVO>> listByMerchant(
+            @PathVariable Long merchantId,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(productCommentService.listPageByMerchant(merchantId, pageNum, pageSize));
+    }
+
+    /**
      * 商品评价汇总（平均分、总数、好评率、星级分布、带图数）
      * GET /api/product/comment/summary/{productId}
      */

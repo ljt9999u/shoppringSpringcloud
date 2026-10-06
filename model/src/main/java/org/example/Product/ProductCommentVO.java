@@ -14,4 +14,6 @@ public class ProductCommentVO extends ProductComment {
     private String username;   // 用户名
     private String nickname;   // 昵称（展示优先取昵称）
     private String avatar;     // 头像URL
+    private String productName;   // 商品名称（商家评价管理列表用）
+    private String productImage;  // 商品主图（商家评价管理列表用）
 }
