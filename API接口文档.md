@@ -623,6 +623,75 @@ PUT /api/product/audit?id=1&status=0&rejectReason=图片不清晰
 | DELETE | /api/product/image/{id} | 删除单张图片 |
 | DELETE | /api/product/image/product/{productId} | 删除商品全部图片 |
 
+---
+
+### 17.1 图片上传（腾讯云 CloudBase 直传）
+
+> **后端不接收图片文件**，前端直接上传到 CloudBase 云存储，拿到 URL 后调 `POST /api/product/image/add` 存库。
+
+#### 后端配置（已完成）
+
+- 环境 ID：`demo2-4gx58pwtb0429fb1`（配置在 `services-product1/src/main/resources/application.yaml`）
+- 无需后端签名接口，CloudBase 前端 SDK 自动处理认证
+
+#### 前端集成步骤
+
+**1. 安装 SDK**
+
+```bash
+npm install @cloudbase/js-sdk
+```
+
+**2. 初始化并上传**
+
+```javascript
+import cloudbase from '@cloudbase/js-sdk';
+
+// 初始化（只需一次）
+const app = cloudbase.init({
+  env: 'demo2-4gx58pwtb0429fb1'  // 你的环境 ID
+});
+
+// 匿名登录（CloudBase 要求先登录才能上传）
+const auth = app.auth();
+await auth.signInAnonymously();
+
+// 上传图片
+async function uploadImage(file) {
+  const result = await app.uploadFile({
+    cloudPath: `product/${Date.now()}-${file.name}`,  // 云端路径
+    filePath: file                                     // 本地文件对象
+  });
+  
+  // result.fileID 是文件 ID，需要拼接成可访问的 URL
+  const fileUrl = `https://${result.fileID}.tcb.qcloud.la/product/${Date.now()}-${file.name}`;
+  
+  // 拿到 URL 后调后端接口存库
+  await fetch('/api/product/image/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      productId: 1,
+      imageUrl: fileUrl,
+      sort: 0
+    })
+  });
+}
+```
+
+#### CloudBase 控制台配置（可选）
+
+- **安全域名**：开发阶段可跳过；上线后需在 [CloudBase 控制台](https://console.cloud.tencent.com/tcb) → 环境 → 设置 → Web 安全域名 中添加你的域名
+- **存储桶权限**：默认「所有用户可读，仅创建者可写」，如需修改在云存储 → 权限设置中调整
+
+#### 免费额度
+
+- 存储空间：5 GB
+- 下载流量：10 GB/月
+- 上传流量：免费
+
+学习项目完全够用，超出后按量计费（极便宜）。
+
 ### 18. 商品规格（/api/product/spec）
 
 > 颜色/尺码等 SKU，含规格库存与加价。GET 免登录，增删改需登录。

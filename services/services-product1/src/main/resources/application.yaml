@@ -57,6 +57,11 @@ logging:
   level:
     org.example.Mapper: WARN
 
+# 腾讯云 CloudBase（云开发）配置
+# 前端直传图片到云存储，后端只需提供环境 ID
+cloudbase:
+  env-id: demo2-4gx58pwtb0429fb1
+
 # ========== Seata 分布式事务（AT 模式，RM 角色：扣库存分支） ==========
 # enabled=false：未部署 seata-server 时关闭，不影响服务启动与现有流程；
 # TC 启动并注册 Nacos 后改为 true，本服务的 reduceStock 将随订单服务的全局事务一起提交/回滚
