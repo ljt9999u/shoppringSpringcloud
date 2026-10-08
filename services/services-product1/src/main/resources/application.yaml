@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: services-product1
+  # 图片上传大小限制（前端中转上传，最大 5MB）
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
   cloud:
     nacos:
       username: nacos
@@ -58,9 +63,13 @@ logging:
     org.example.Mapper: WARN
 
 # 腾讯云 CloudBase（云开发）配置
-# 前端直传图片到云存储，后端只需提供环境 ID
+# 已改用后端中转上传（upload.dir），此配置保留仅作参考
 cloudbase:
   env-id: demo2-4gx58pwtb0429fb1
+
+# 图片上传保存目录（后端中转方案）
+upload:
+  dir: D:/weifuwu/demo2/uploads
 
 # ========== Seata 分布式事务（AT 模式，RM 角色：扣库存分支） ==========
 # enabled=false：未部署 seata-server 时关闭，不影响服务启动与现有流程；
