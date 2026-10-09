@@ -14,6 +14,7 @@ public class Merchant {
     private String shopName;          // 店铺名称
     private String shopLogo;           // 店铺Logo
     private String businessLicense;   // 营业执照号
+    private String licenseImage;      // 营业执照图片URL
     private String contactPhone;      // 联系电话
     private Integer status;           // 审核状态 0待审核 1已通过 2已拒绝
     private LocalDateTime createTime;

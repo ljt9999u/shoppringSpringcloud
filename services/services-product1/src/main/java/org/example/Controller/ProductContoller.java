@@ -143,6 +143,19 @@ public class ProductContoller {
     }
 
     /**
+     * 管理端分页查询全部状态商品（可按状态、名称过滤）
+     * GET /api/product/admin/page?status=&keyword=&pageNum=1&pageSize=10
+     */
+    @GetMapping("/admin/page")
+    public Result<PageResult<Product>> adminPage(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(productService.listPageAdmin(status, keyword, pageNum, pageSize));
+    }
+
+    /**
      * 审核商品
      * PUT /api/product/audit?id=1&status=1  （status=1 通过上架；status=0 拒绝下架，需传 rejectReason）
      */

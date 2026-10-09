@@ -57,6 +57,12 @@ public interface UserMapper {
     int updateStatus(@Param("id") Long id, @Param("status") int status);
 
     /**
+     * 修改用户角色（商家入驻审核通过时由商家服务经 Feign 调用）
+     */
+    @Update("update user set role_code = #{roleCode} where id = #{id}")
+    int updateRole(@Param("id") Long id, @Param("roleCode") String roleCode);
+
+    /**
      * 用户总数
      */
     @Select("select count(*) from user")

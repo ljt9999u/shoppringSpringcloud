@@ -15,4 +15,9 @@ public class UserFeignFallback implements UserFeign {
     public Result<UserPOJO> getUserById(Long id) {
         return Result.fail("用户服务暂时不可用");
     }
+
+    @Override
+    public Result<Boolean> updateUserRole(Long id, String roleCode) {
+        return Result.fail("用户服务暂时不可用");
+    }
 }

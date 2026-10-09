@@ -182,6 +182,26 @@ public class LoginServices implements UserServices {
     }
 
     /**
+     * 修改用户角色（商家入驻审核通过时由商家服务调用）
+     */
+    @Override
+    public Result<Boolean> updateRole(Long id, String roleCode) {
+        // 角色白名单，防止任意写入
+        if (!"USER".equals(roleCode) && !"MERCHANT".equals(roleCode) && !"ADMIN".equals(roleCode)) {
+            return Result.fail("非法角色：" + roleCode);
+        }
+        UserPOJO dbUser = userMapper.findById(id);
+        if (dbUser == null) {
+            return Result.fail("用户不存在");
+        }
+        int rows = userMapper.updateRole(id, roleCode);
+        if (rows <= 0) {
+            return Result.fail("修改角色失败");
+        }
+        return Result.success(true);
+    }
+
+    /**
      * 分页查询用户（管理端），返回数据脱敏
      */
     @Override

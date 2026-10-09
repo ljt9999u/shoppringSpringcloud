@@ -17,8 +17,8 @@ public interface MerchantMapper {
     /**
      * 商家入驻申请（创建商家记录）
      */
-    @Insert("INSERT INTO merchant(user_id, shop_name, shop_logo, business_license, contact_phone, status) " +
-            "VALUES(#{userId}, #{shopName}, #{shopLogo}, #{businessLicense}, #{contactPhone}, #{status})")
+    @Insert("INSERT INTO merchant(user_id, shop_name, shop_logo, business_license, license_image, contact_phone, status) " +
+            "VALUES(#{userId}, #{shopName}, #{shopLogo}, #{businessLicense}, #{licenseImage}, #{contactPhone}, #{status})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insertMerchant(Merchant merchant);
 
@@ -62,7 +62,8 @@ public interface MerchantMapper {
      * 更新商家信息
      */
     @Update("UPDATE merchant SET shop_name = #{shopName}, shop_logo = #{shopLogo}, " +
-            "business_license = #{businessLicense}, contact_phone = #{contactPhone} WHERE id = #{id}")
+            "business_license = #{businessLicense}, license_image = #{licenseImage}, " +
+            "contact_phone = #{contactPhone} WHERE id = #{id}")
     int updateMerchant(Merchant merchant);
 
     /**

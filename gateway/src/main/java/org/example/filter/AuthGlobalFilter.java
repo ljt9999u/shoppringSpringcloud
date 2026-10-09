@@ -101,6 +101,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         if (method == HttpMethod.GET) {
             if (path.startsWith("/api/product/")
                     && !path.startsWith("/api/product/audit/")
+                    && !path.startsWith("/api/product/admin/")
                     && !path.startsWith("/api/product/comment/merchant/")) {
                 return true;
             }

@@ -149,6 +149,32 @@ public interface ProductMapper {
     @Select("select count(*) from product where status = 2")
     long countAudit();
 
+    // ========== 管理员后台：全平台商品监管 ==========
+
+    /**
+     * 管理端分页查询全部状态商品（可按状态、名称过滤）
+     */
+    @Select("<script>" +
+            "select * from product where 1 = 1 " +
+            "<if test='status != null'>and status = #{status} </if>" +
+            "<if test='keyword != null and keyword != \"\"'>and name like concat('%', #{keyword}, '%') </if>" +
+            "order by create_time desc limit #{offset}, #{pageSize}" +
+            "</script>")
+    List<Product> findPageAdmin(@Param("status") Integer status,
+                                @Param("keyword") String keyword,
+                                @Param("offset") int offset,
+                                @Param("pageSize") int pageSize);
+
+    /**
+     * 管理端商品总数
+     */
+    @Select("<script>" +
+            "select count(*) from product where 1 = 1 " +
+            "<if test='status != null'>and status = #{status} </if>" +
+            "<if test='keyword != null and keyword != \"\"'>and name like concat('%', #{keyword}, '%') </if>" +
+            "</script>")
+    long countAdmin(@Param("status") Integer status, @Param("keyword") String keyword);
+
     /**
      * 审核商品：通过→status=1 并清空拒绝原因；拒绝→status=0 并写入拒绝原因
      */

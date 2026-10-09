@@ -156,6 +156,15 @@ public class UserController {
     }
 
     /**
+     * 修改用户角色（商家入驻审核通过时由商家服务内部调用）
+     * PUT /api/user/role/{id}?roleCode=MERCHANT
+     */
+    @PutMapping("/role/{id}")
+    public Result<Boolean> updateRole(@PathVariable Long id, @RequestParam String roleCode) {
+        return userServices.updateRole(id, roleCode);
+    }
+
+    /**
      * 从网关透传头 X-User-Id 解析当前登录用户ID（直连服务时该头不存在，返回 null）
      */
     private Long resolveUserId(HttpServletRequest request) {

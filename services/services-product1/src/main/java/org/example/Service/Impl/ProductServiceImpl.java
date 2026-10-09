@@ -115,6 +115,16 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public PageResult<Product> listPageAdmin(Integer status, String keyword, int pageNum, int pageSize) {
+        int[] p = normalizePage(pageNum, pageSize);
+        int offset = (p[0] - 1) * p[1];
+        String kw = (keyword == null || keyword.trim().isEmpty()) ? null : keyword.trim();
+        long total = productMapper.countAdmin(status, kw);
+        List<Product> list = productMapper.findPageAdmin(status, kw, offset, p[1]);
+        return new PageResult<>(total, p[0], p[1], list);
+    }
+
+    @Override
     public boolean audit(Long id, int status, String rejectReason) {
         // 仅允许审核通过(1)或拒绝(0)
         if (status != 1 && status != 0) {

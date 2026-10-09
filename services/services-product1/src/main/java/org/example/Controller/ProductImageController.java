@@ -110,7 +110,7 @@ public class ProductImageController {
     @Value("${upload.dir:D:/weifuwu/demo2/uploads}")
     private String uploadDir;
 
-    private static final List<String> ALLOWED_DIRS = Arrays.asList("product", "avatar");
+    private static final List<String> ALLOWED_DIRS = Arrays.asList("product", "avatar", "license");
     private static final List<String> ALLOWED_EXTS = Arrays.asList(".jpg", ".jpeg", ".png", ".webp", ".gif");
     private static final long MAX_SIZE = 5 * 1024 * 1024;
 

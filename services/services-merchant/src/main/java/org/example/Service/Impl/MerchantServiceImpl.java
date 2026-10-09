@@ -36,12 +36,26 @@ public class MerchantServiceImpl implements MerchantService {
         if (userResult.getCode() != 200 || userResult.getData() == null) {
             throw new RuntimeException("用户不存在，入驻申请失败");
         }
-        // 2. 校验该用户是否已入驻
+        // 2. 校验该用户是否已提交过申请（被拒绝可重新提交）
         Merchant exist = merchantMapper.findByUserId(merchant.getUserId());
         if (exist != null) {
-            throw new RuntimeException("该用户已提交过入驻申请");
+            if (exist.getStatus() != null && exist.getStatus() == 2) {
+                // 已拒绝：更新原记录重新进入审核（user_id 唯一约束，必须走更新）
+                exist.setShopName(merchant.getShopName());
+                exist.setShopLogo(merchant.getShopLogo());
+                exist.setBusinessLicense(merchant.getBusinessLicense());
+                exist.setLicenseImage(merchant.getLicenseImage());
+                exist.setContactPhone(merchant.getContactPhone());
+                exist.setStatus(0);
+                merchantMapper.updateMerchant(exist);
+                log.info("被拒商家重新提交入驻申请，商家ID：{}", exist.getId());
+                return exist;
+            }
+            throw new RuntimeException(exist.getStatus() != null && exist.getStatus() == 1
+                    ? "您已通过商家审核，无需再次申请"
+                    : "申请正在审核中，请勿重复提交");
         }
-        // 3. 设置默认状态为待审核并保存
+        // 3. 首次申请：设置默认状态为待审核并保存
         if (merchant.getStatus() == null) {
             merchant.setStatus(0);
         }
@@ -123,12 +137,24 @@ public class MerchantServiceImpl implements MerchantService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean auditMerchant(Long id, int status) {
         Merchant merchant = merchantMapper.findById(id);
         if (merchant == null) {
             return false;
         }
-        return merchantMapper.updateStatus(id, status) > 0;
+        if (merchantMapper.updateStatus(id, status) <= 0) {
+            return false;
+        }
+        // 审核通过：用户角色升级为商家（Feign 调用户服务，失败则回滚审核状态）
+        if (status == 1) {
+            Result<Boolean> roleResult = userFeign.updateUserRole(merchant.getUserId(), "MERCHANT");
+            if (roleResult.getCode() != 200) {
+                throw new RuntimeException("用户角色升级失败：" + roleResult.getMessage());
+            }
+            log.info("商家审核通过，用户 {} 已升级为商家角色", merchant.getUserId());
+        }
+        return true;
     }
 
     @Override

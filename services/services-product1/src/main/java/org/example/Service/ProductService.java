@@ -55,6 +55,11 @@ public interface ProductService {
     PageResult<Product> listPageAudit(int pageNum, int pageSize);
 
     /**
+     * 管理端分页查询全部状态商品（可按状态、名称过滤）
+     */
+    PageResult<Product> listPageAdmin(Integer status, String keyword, int pageNum, int pageSize);
+
+    /**
      * 审核商品：status=1 通过（上架），status=0 拒绝（下架，写入拒绝原因）
      */
     boolean audit(Long id, int status, String rejectReason);

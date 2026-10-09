@@ -44,6 +44,11 @@ public interface UserServices {
     Result<Boolean> updateStatus(Long id, int status);
 
     /**
+     * 修改用户角色（USER/MERCHANT/ADMIN，商家入驻审核通过时调用）
+     */
+    Result<Boolean> updateRole(Long id, String roleCode);
+
+    /**
      * 分页查询用户（管理端）
      */
     Result<PageResult<UserPOJO>> page(int pageNum, int pageSize);
